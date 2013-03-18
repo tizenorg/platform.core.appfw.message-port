@@ -48,7 +48,7 @@ static const char REMOTE_PORT[] = "REMOTE_PORT";
 static const char TRUSTED_REMOTE[] = "TRUSTED_REMOTE";
 static const char TRUSTED_MESSAGE[] = "TRUSTED_MESSAGE";
 
-static const int MAX_MESSAGE_SIZE = 8 * 1024;
+static const int MAX_MESSAGE_SIZE = 16 * 1024;
 
 MessagePortProxy::MessagePortProxy(void)
 	: __pIpcClient(NULL)

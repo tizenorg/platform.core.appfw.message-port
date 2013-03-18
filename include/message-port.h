@@ -126,7 +126,7 @@ int messageport_check_trusted_remote_port(const char* remote_app_id, const char 
  *
  * @param [in] remote_app_id The ID of the remote application
  * @param [in] remote_port the name of the remote message port
- * @param [in] message the message to be passed to the remote application
+ * @param [in] message the message to be passed to the remote application, the recommended message size is under 4KB
  * @return 0 on success, otherwise a negative error value.
  * @retval #MESSAGEPORT_ERROR_NONE Successful
  * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
@@ -154,7 +154,7 @@ int messageport_send_message(const char* remote_app_id, const char* remote_port,
  *
  * @param [in] remote_app_id The ID of the remote application
  * @param [in] remote_port the name of the remote message port
- * @param [in] message the message to be passed to the remote application
+ * @param [in] message the message to be passed to the remote application, the recommended message size is under 4KB
  * @return 0 on success, otherwise a negative error value.
  * @retval #MESSAGEPORT_ERROR_NONE Successful
  * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
@@ -172,7 +172,7 @@ int messageport_send_trusted_message(const char* remote_app_id, const char* remo
  * @param [in] id The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
  * @param [in] remote_app_id The ID of the remote application
  * @param [in] remote_port the name of the remote message port
- * @param [in] message the message to be passed to the remote application
+ * @param [in] message the message to be passed to the remote application, the recommended message size is under 4KB
  * @return 0 on success, otherwise a negative error value.
  * @retval #MESSAGEPORT_ERROR_NONE Successful
  * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
@@ -210,7 +210,7 @@ int messageport_send_bidirectional_message(int id, const char* remote_app_id, co
  * @param [in] id The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
  * @param [in] remote_app_id The ID of the remote application
  * @param [in] remote_port the name of the remote message port
- * @param [in] message the message to be passed to the remote application
+ * @param [in] message the message to be passed to the remote application, the recommended message size is under 4KB
  * @return 0 on success, otherwise a negative error value.
  * @retval #MESSAGEPORT_ERROR_NONE Successful
  * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
