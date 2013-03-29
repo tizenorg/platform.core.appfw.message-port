@@ -90,10 +90,6 @@ private:
 
 	bool IsLocalPortRegisted(const std::string& localPort, bool trusted, int &id);
 
-	int CheckCertificate(const std::string& remoteAppId);
-
-	bool IsPreloaded(const std::string& remoteAppId);
-
 private:
 	IpcClient* __pIpcClient;
 	pthread_mutex_t* __pMutex;

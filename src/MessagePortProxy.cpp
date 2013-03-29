@@ -26,8 +26,6 @@
 #include <unistd.h>
 #include <sstream>
 
-#include <package_manager.h>
-
 #include "message-port.h"
 #include "message-port-messages.h"
 #include "message-port-log.h"
@@ -169,7 +167,6 @@ MessagePortProxy::RegisterMessagePort(const string& localPort, bool isTrusted,  
 		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
-
 	// Add a listener
 	if (!isTrusted)
 	{
@@ -197,23 +194,10 @@ MessagePortProxy::CheckRemotePort(const string& remoteAppId, const string& remot
 {
 	_LOGD("Check a remote port : [%s:%s]", remoteAppId.c_str(), remotePort.c_str());
 
-	int ret = 0;
-
-	// Check the certificate
-	if (isTrusted)
-	{
-		// Check the preloaded
-		if (!IsPreloaded(remoteAppId))
-		{
-			ret = CheckCertificate(remoteAppId);
-			if (ret < 0)
-			{
-				return ret;
-			}
-		}
-	}
-
 	bundle *b = bundle_create();
+
+	bundle_add(b, LOCAL_APPID, __appId.c_str());
+
 	bundle_add(b, REMOTE_APPID, remoteAppId.c_str());
 	bundle_add(b, REMOTE_PORT, remotePort.c_str());
 
@@ -239,7 +223,7 @@ MessagePortProxy::CheckRemotePort(const string& remoteAppId, const string& remot
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 	}
 
-	ret = __pIpcClient->SendRequest(pMsg);
+	int ret = __pIpcClient->SendRequest(pMsg);
 
 	delete pMsg;
 
@@ -256,8 +240,17 @@ MessagePortProxy::CheckRemotePort(const string& remoteAppId, const string& remot
 	{
 		if (return_value == MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND)
 		{
+			_LOGE("The remote message port (%s) is not found.", remotePort.c_str());
+
 			*exist = false;
 			return 0;
+		}
+		else if (return_value == MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH)
+		{
+			_LOGE("The remote application (%s) is not signed with the same certificate", remoteAppId.c_str());
+
+			*exist = true;
+			return MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH;
 		}
 		else
 		{
@@ -277,21 +270,9 @@ MessagePortProxy::SendMessage(const string& remoteAppId, const string& remotePor
 
 	int ret = 0;
 
-	// Check the certificate
-	if (trustedMessage)
-	{
-		// Check the preloaded
-		if (!IsPreloaded(remoteAppId))
-		{
-			ret = CheckCertificate(remoteAppId);
-			if (ret < 0)
-			{
-				return ret;
-			}
-		}
-	}
-
 	bundle_add(data, MESSAGE_TYPE, "UNI-DIR");
+
+	bundle_add(data, LOCAL_APPID, __appId.c_str());
 
 	bundle_add(data, REMOTE_APPID, remoteAppId.c_str());
 	bundle_add(data, REMOTE_PORT, remotePort.c_str());
@@ -319,20 +300,6 @@ MessagePortProxy::SendMessage(const string& localPort, bool trustedPort, const s
 	_LOGD("Send a bidirectional message from [%s:%s] to [%s:%s]", __appId.c_str(), localPort.c_str(), remoteAppId.c_str(), remotePort.c_str());
 
 	int ret = 0;
-
-	// Check the certificate
-	if (trustedMessage)
-	{
-		// Check the preloaded
-		if (!IsPreloaded(remoteAppId))
-		{
-			ret = CheckCertificate(remoteAppId);
-			if (ret < 0)
-			{
-				return ret;
-			}
-		}
-	}
 
 	bundle_add(data, MESSAGE_TYPE, "BI-DIR");
 
@@ -371,9 +338,8 @@ MessagePortProxy::SendMessage(const string& localPort, bool trustedPort, const s
 int
 MessagePortProxy::SendMessageInternal(const BundleBuffer& buffer)
 {
-	int ret = 0;
-
-	IPC::Message* pMsg = new MessagePort_sendMessage(buffer, &ret);
+	int return_value = 0;
+	IPC::Message* pMsg = new MessagePort_sendMessage(buffer, &return_value);
 	if (pMsg == NULL)
 	{
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
@@ -392,13 +358,36 @@ MessagePortProxy::SendMessageInternal(const BundleBuffer& buffer)
 		return MESSAGEPORT_ERROR_MAX_EXCEEDED;
 	}
 
-	ret = __pIpcClient->SendRequest(pMsg);
+	int ret = __pIpcClient->SendRequest(pMsg);
 	delete pMsg;
 
-	if (ret != 0)
+	if (ret < 0)
 	{
 		_LOGE("Failed to send a request: %d.", ret);
+
 		return MESSAGEPORT_ERROR_IO_ERROR;
+	}
+
+	if (return_value < 0)
+	{
+		if (return_value == MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND)
+		{
+			_LOGE("The remote message port is not found.");
+
+			return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
+		}
+		else if (return_value == MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH)
+		{
+			_LOGE("The remote application is not signed with the same certificate.");
+
+			return MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH;
+		}
+		else
+		{
+			_LOGE("Failed to check the remote messge port: %d.", return_value);
+
+			return MESSAGEPORT_ERROR_IO_ERROR;
+		}
 	}
 
 	return 0;
@@ -539,57 +528,6 @@ MessagePortProxy::IsLocalPortRegisted(const string& localPort, bool trusted, int
 				}
 			}
 		}
-	}
-
-	return false;
-}
-
-int
-MessagePortProxy::CheckCertificate(const std::string& remoteAppId)
-{
-	package_manager_compare_result_type_e res;
-	int ret = package_manager_compare_app_cert_info(__appId.c_str(), remoteAppId.c_str(), &res);
-
-	if (ret == 0)
-	{
-		if (res != PACAKGE_MANAGER_COMPARE_MATCH)
-		{
-			_LOGE("The remote application (%s) is not signed with the same certificate", remoteAppId.c_str());
-			return MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH;
-		}
-	}
-	else
-	{
-		_LOGE("Failed to check the certificate: %d.", ret);
-		return MESSAGEPORT_ERROR_IO_ERROR;
-	}
-
-	return 0;
-}
-
-bool
-MessagePortProxy::IsPreloaded(const std::string& remoteAppId)
-{
-	bool preload_local = false;
-	bool preload_remote = false;
-
-	if (package_manager_is_preload_package_by_app_id(__appId.c_str(), &preload_local) == 0)
-	{
-		if (package_manager_is_preload_package_by_app_id(remoteAppId.c_str(), &preload_remote) == 0)
-		{
-			if (preload_local && preload_remote)
-			{
-				return true;
-			}
-		}
-		else
-		{
-			_LOGE("Failed to check the preloaded application.");
-		}
-	}
-	else
-	{
-		_LOGE("Failed to check the preloaded application.");
 	}
 
 	return false;

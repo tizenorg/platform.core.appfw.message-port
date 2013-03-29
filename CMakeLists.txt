@@ -60,7 +60,6 @@ TARGET_LINK_LIBRARIES(${this_target} "-lbundle" )
 TARGET_LINK_LIBRARIES(${this_target} "-lglib-2.0" )
 TARGET_LINK_LIBRARIES(${this_target} "-lchromium" )
 TARGET_LINK_LIBRARIES(${this_target} "-lcapi-appfw-app-manager" )
-TARGET_LINK_LIBRARIES(${this_target} "-lcapi-appfw-package-manager" )
 
 SET_TARGET_PROPERTIES(${this_target}
 	PROPERTIES
