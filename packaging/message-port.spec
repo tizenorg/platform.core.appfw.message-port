@@ -41,7 +41,7 @@ Message Port library (DEV)
 
 %build
 MAJORVER=`echo %{version} | awk 'BEGIN {FS="."}{print $1}'`
-cmake . -DCMAKE_INSTALL_PREFIX=/usr -DFULLVER=%{version} -DMAJORVER=${MAJORVER}
+%cmake . -DFULLVER=%{version} -DMAJORVER=${MAJORVER}
 
 # Call make instruction with smp support
 make %{?jobs:-j%jobs}

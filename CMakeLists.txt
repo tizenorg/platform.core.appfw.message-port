@@ -13,7 +13,7 @@ INCLUDE_DIRECTORIES (
 	/usr/include/appfw
 	/usr/include/dlog
 	/usr/include/glib-2.0
-	/usr/lib/glib-2.0/include
+	${LIB_INSTALL_DIR}/glib-2.0/include
 	/usr/include/chromium
 	include
 	)
@@ -53,7 +53,7 @@ ADD_DEFINITIONS("-DSLP_DEBUG")
 ADD_LIBRARY (${this_target} SHARED ${${this_target}_SOURCE_FILES})
 
 ## SET LINKER FLAGS
-SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed -Wl,--rpath=/usr/lib")
+SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed -Wl,--rpath=${LIB_INSTALL_DIR}")
 
 TARGET_LINK_LIBRARIES(${this_target} "-ldlog" )
 TARGET_LINK_LIBRARIES(${this_target} "-lbundle" )
@@ -71,13 +71,13 @@ SET_TARGET_PROPERTIES(${this_target}
 
 # pkgconfig file
 CONFIGURE_FILE(${this_target}.pc.in ${CMAKE_SOURCE_DIR}/${this_target}.pc @ONLY)
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/${this_target}.pc DESTINATION lib/pkgconfig)
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/${this_target}.pc DESTINATION ${LIB_INSTALL_DIR}/pkgconfig)
 
-INSTALL(TARGETS ${this_target} DESTINATION lib)
+INSTALL(TARGETS ${this_target} DESTINATION ${LIB_INSTALL_DIR})
 
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include/appfw FILES_MATCHING PATTERN "*.h")
 
-INSTALL(DIRECTORY ${LIBRARY_OUTPUT_PATH}/ DESTINATION lib
+INSTALL(DIRECTORY ${LIBRARY_OUTPUT_PATH}/ DESTINATION ${LIB_INSTALL_DIR}
 		FILES_MATCHING PATTERN "*.so*" 
 		PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ                      
                     GROUP_EXECUTE GROUP_READ
