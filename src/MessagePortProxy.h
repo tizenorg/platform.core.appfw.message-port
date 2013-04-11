@@ -82,9 +82,9 @@ public:
 private:
 	MessagePortProxy(void);
 
-	int SendMessageInternal(const BundleBuffer& buffer);
+	int SendMessageInternal(const BundleBuffer& metadata, const BundleBuffer& buffer);
 
-	bool OnSendMessageInternal(const BundleBuffer& buffer);
+	bool OnSendMessageInternal(const BundleBuffer& metadata, const BundleBuffer& buffer);
 
 	int GetNextId(void);
 

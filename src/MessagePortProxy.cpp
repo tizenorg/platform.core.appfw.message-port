@@ -96,8 +96,6 @@ MessagePortProxy::Construct(void)
 void
 MessagePortProxy::OnIpcResponseReceived(IpcClient& client, const IPC::Message& message)
 {
-	_LOGD("Message received, type %d", message.type());
-
 	IPC_BEGIN_MESSAGE_MAP(MessagePortProxy, message)
 	IPC_MESSAGE_HANDLER_EX(MessagePort_sendMessageAsync, &client, OnSendMessageInternal)
 	IPC_END_MESSAGE_MAP_EX()
@@ -270,26 +268,32 @@ MessagePortProxy::SendMessage(const string& remoteAppId, const string& remotePor
 
 	int ret = 0;
 
-	bundle_add(data, MESSAGE_TYPE, "UNI-DIR");
+	bundle *b = bundle_create();
+	bundle_add(b, MESSAGE_TYPE, "UNI-DIR");
 
-	bundle_add(data, LOCAL_APPID, __appId.c_str());
+	bundle_add(b, LOCAL_APPID, __appId.c_str());
 
-	bundle_add(data, REMOTE_APPID, remoteAppId.c_str());
-	bundle_add(data, REMOTE_PORT, remotePort.c_str());
+	bundle_add(b, REMOTE_APPID, remoteAppId.c_str());
+	bundle_add(b, REMOTE_PORT, remotePort.c_str());
 
 	if (!trustedMessage)
 	{
-		bundle_add(data, TRUSTED_MESSAGE, "FALSE");
+		bundle_add(b, TRUSTED_MESSAGE, "FALSE");
 	}
 	else
 	{
-		bundle_add(data, TRUSTED_MESSAGE, "TRUE");
+		bundle_add(b, TRUSTED_MESSAGE, "TRUE");
 	}
+
+	BundleBuffer metadata;
+	metadata.b = b;
 
 	BundleBuffer buffer;
 	buffer.b = data;
 
-	ret = SendMessageInternal(buffer);
+	ret = SendMessageInternal(metadata, buffer);
+
+	bundle_free(b);
 
 	return ret;
 }
@@ -301,45 +305,51 @@ MessagePortProxy::SendMessage(const string& localPort, bool trustedPort, const s
 
 	int ret = 0;
 
-	bundle_add(data, MESSAGE_TYPE, "BI-DIR");
+	bundle *b = bundle_create();
+	bundle_add(b, MESSAGE_TYPE, "BI-DIR");
 
-	bundle_add(data, LOCAL_APPID, __appId.c_str());
-	bundle_add(data, LOCAL_PORT, localPort.c_str());
+	bundle_add(b, LOCAL_APPID, __appId.c_str());
+	bundle_add(b, LOCAL_PORT, localPort.c_str());
 
 	if (!trustedPort)
 	{
-		bundle_add(data, TRUSTED_LOCAL, "FALSE");
+		bundle_add(b, TRUSTED_LOCAL, "FALSE");
 	}
 	else
 	{
-		bundle_add(data, TRUSTED_LOCAL, "TRUE");
+		bundle_add(b, TRUSTED_LOCAL, "TRUE");
 	}
 
-	bundle_add(data, REMOTE_APPID, remoteAppId.c_str());
-	bundle_add(data, REMOTE_PORT, remotePort.c_str());
+	bundle_add(b, REMOTE_APPID, remoteAppId.c_str());
+	bundle_add(b, REMOTE_PORT, remotePort.c_str());
 
 	if (!trustedMessage)
 	{
-		bundle_add(data, TRUSTED_MESSAGE, "FALSE");
+		bundle_add(b, TRUSTED_MESSAGE, "FALSE");
 	}
 	else
 	{
-		bundle_add(data, TRUSTED_MESSAGE, "TRUE");
+		bundle_add(b, TRUSTED_MESSAGE, "TRUE");
 	}
+
+	BundleBuffer metadata;
+	metadata.b = b;
 
 	BundleBuffer buffer;
 	buffer.b = data;
 
-	ret = SendMessageInternal(buffer);
+	ret = SendMessageInternal(metadata, buffer);
+
+	bundle_free(b);
 
 	return ret;
 }
 
 int
-MessagePortProxy::SendMessageInternal(const BundleBuffer& buffer)
+MessagePortProxy::SendMessageInternal(const BundleBuffer& metadata, const BundleBuffer& buffer)
 {
 	int return_value = 0;
-	IPC::Message* pMsg = new MessagePort_sendMessage(buffer, &return_value);
+	IPC::Message* pMsg = new MessagePort_sendMessage(metadata, buffer, &return_value);
 	if (pMsg == NULL)
 	{
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
@@ -534,9 +544,9 @@ MessagePortProxy::IsLocalPortRegisted(const string& localPort, bool trusted, int
 }
 
 bool
-MessagePortProxy::OnSendMessageInternal(const BundleBuffer& buffer)
+MessagePortProxy::OnSendMessageInternal(const BundleBuffer& metadata, const BundleBuffer& buffer)
 {
-	bundle* b = buffer.b;
+	bundle* b = metadata.b;
 
 	const char* pRemoteAppId = bundle_get_val(b, REMOTE_APPID);
 	const char* pRemotePort = bundle_get_val(b, REMOTE_PORT);
@@ -563,15 +573,9 @@ MessagePortProxy::OnSendMessageInternal(const BundleBuffer& buffer)
 
 	if (callback)
 	{
-		// remove system data
-		bundle_del(b, REMOTE_APPID);
-		bundle_del(b, REMOTE_PORT);
-		bundle_del(b, TRUSTED_MESSAGE);
-		bundle_del(b, MESSAGE_TYPE);
-
 		if (messageType.compare("UNI-DIR") == 0)
 		{
-			callback(id, NULL, NULL, false, b);
+			callback(id, NULL, NULL, false, buffer.b);
 		}
 		else
 		{
@@ -583,18 +587,16 @@ MessagePortProxy::OnSendMessageInternal(const BundleBuffer& buffer)
 
 			bool trustedPort = (trustedLocal.compare("TRUE") == 0);
 
-			// remove system data
-			bundle_del(b, LOCAL_APPID);
-			bundle_del(b, LOCAL_PORT);
-			bundle_del(b, TRUSTED_LOCAL);
-
-			callback(id, localAppId.c_str(), localPort.c_str(), trustedPort, b);
+			callback(id, localAppId.c_str(), localPort.c_str(), trustedPort, buffer.b);
 		}
+
 	}
 	else
 	{
 		_LOGD("No callback");
 	}
+
+	bundle_free(b);
 
 	return true;
 }

@@ -32,7 +32,7 @@
 
 IPC_SYNC_MESSAGE_CONTROL1_1(MessagePort_registerPort, BundleBuffer, int)
 IPC_SYNC_MESSAGE_CONTROL1_1(MessagePort_checkRemotePort, BundleBuffer, int)
-IPC_SYNC_MESSAGE_CONTROL1_1(MessagePort_sendMessage, BundleBuffer, int)
-IPC_MESSAGE_CONTROL1(MessagePort_sendMessageAsync, BundleBuffer)
+IPC_SYNC_MESSAGE_CONTROL2_1(MessagePort_sendMessage, BundleBuffer, BundleBuffer, int)
+IPC_MESSAGE_CONTROL2(MessagePort_sendMessageAsync, BundleBuffer, BundleBuffer)
 
 #endif //_APPFW_MESSAGE_PORT_MESSAGES_H_
