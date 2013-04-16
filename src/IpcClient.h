@@ -72,6 +72,13 @@ public:
 	int Construct(const std::string& serverName, const IIpcClientEventListener* pListener = NULL);
 
 	/**
+	 * Returns the name of the IPC server.
+	 *
+	 * @return The name of the IPC server.
+	 */
+	std::string GetName(void) const;
+
+	/**
 	 * Sends a request message to an IPC server.
 	 *
 	 * @code

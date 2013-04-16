@@ -49,6 +49,13 @@ public:
 	 * @param[in] message      The response message
 	 */
 	virtual void OnIpcResponseReceived(IpcClient& client, const IPC::Message& message) = 0;
+
+	/**
+	 * Called when an IPC server disconnected.
+	 *
+	 * @param[in] client		The IPC client
+	 */
+	virtual void OnIpcServerDisconnected(IpcClient& client) {}
 }; // IIpcClientEventListener
 
 #endif //_IIPC_CLIENT_EVENT_LISTENER_H_

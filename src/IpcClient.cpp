@@ -104,6 +104,12 @@ IpcClient::Construct(const string& serverName, const IIpcClientEventListener* pL
 
 }
 
+string
+IpcClient::GetName(void) const
+{
+	return __name;
+}
+
 struct HelloMessage
 {
 	int pid;
@@ -303,9 +309,16 @@ IpcClient::HandleReceivedMessage(GIOChannel* source, GIOCondition condition)
 
 	if (condition & G_IO_HUP)
 	{
+		_LOGD("G_IO_HUP, the connection is closed.");
+
 		g_source_destroy(__pReverseSource);
 		g_source_unref(__pReverseSource);
 		__pReverseSource = NULL;
+
+		if (__pListener)
+		{
+			__pListener->OnIpcServerDisconnected(*this);
+		}
 
 		return FALSE;
 	}
@@ -320,8 +333,17 @@ IpcClient::HandleReceivedMessage(GIOChannel* source, GIOCondition condition)
 		{
 			pGError = NULL;
 			status = g_io_channel_read_chars(source, (char*) __messageBuffer, __MAX_MESSAGE_BUFFER_SIZE, &readSize, &pGError);
-			if (status == G_IO_STATUS_EOF)
+			if (status == G_IO_STATUS_EOF || status == G_IO_STATUS_ERROR)
 			{
+				if (status == G_IO_STATUS_EOF)
+				{
+					_LOGD("G_IO_STATUS_EOF, the connection is closed.");
+				}
+				else
+				{
+					_LOGD("G_IO_STATUS_ERROR, the connection is closed.");
+				}
+
 				pGError = NULL;
 
 				g_io_channel_shutdown(source, FALSE, &pGError);
@@ -329,6 +351,11 @@ IpcClient::HandleReceivedMessage(GIOChannel* source, GIOCondition condition)
 				g_source_destroy(__pReverseSource);
 				g_source_unref(__pReverseSource);
 				__pReverseSource = NULL;
+
+				if (__pListener)
+				{
+					__pListener->OnIpcServerDisconnected(*this);
+				}
 
 				return FALSE;
 			}
