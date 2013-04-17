@@ -554,7 +554,7 @@ MessagePortProxy::OnSendMessageInternal(const BundleBuffer& metadata, const Bund
 
 	string messageType = bundle_get_val(b, MESSAGE_TYPE);
 
-	_LOGD("Message received to AppId: %s, Port: %s, Trusted: %s", pRemoteAppId, pRemotePort, trustedMessage.c_str());
+	_LOGD("Message received to App: %s, Port: %s, Trusted: %s", pRemoteAppId, pRemotePort, trustedMessage.c_str());
 
 	int id = 0;
 	messageport_message_cb callback;
@@ -583,7 +583,7 @@ MessagePortProxy::OnSendMessageInternal(const BundleBuffer& metadata, const Bund
 			string localPort = bundle_get_val(b, LOCAL_PORT);
 			string trustedLocal = bundle_get_val(b, TRUSTED_LOCAL);
 
-			_LOGD("From AppId: %s, Port: %s, TrustedLocal: %s", localAppId.c_str(), localPort.c_str(), trustedLocal.c_str());
+			_LOGD("From App: %s, Port: %s, TrustedLocal: %s", localAppId.c_str(), localPort.c_str(), trustedLocal.c_str());
 
 			bool trustedPort = (trustedLocal.compare("TRUE") == 0);
 
