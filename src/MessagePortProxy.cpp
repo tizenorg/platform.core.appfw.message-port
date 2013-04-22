@@ -26,6 +26,8 @@
 #include <unistd.h>
 #include <sstream>
 
+#include <app_manager.h>
+
 #include "message-port.h"
 #include "message-port-messages.h"
 #include "message-port-log.h"
@@ -88,7 +90,20 @@ MessagePortProxy::Construct(void)
 
 	__pMutex = pMutex;
 	__pIpcClient = pIpcClient;
-	__appId = pIpcClient->GetAppId();
+
+	int pid = getpid();
+	char* pAppId = NULL;
+	ret = app_manager_get_app_id(pid, &pAppId);
+	if (ret < 0)
+	{
+		_LOGE("Failed to get_app_id: %d", ret);
+
+		return MESSAGEPORT_ERROR_IO_ERROR;
+	}
+
+	__appId = pAppId;
+
+	free(pAppId);
 
 	return 0;
 }

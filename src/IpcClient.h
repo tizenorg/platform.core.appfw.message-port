@@ -109,8 +109,6 @@ public:
 
 	int SendRequest(IPC::Message* pMessage);
 
-	std::string GetAppId(void);
-
 private:
 	IpcClient(const IpcClient& value);
 
@@ -134,9 +132,9 @@ private:
 
 private:
 	GSource* __pReverseSource;
+	pthread_mutex_t* __pMutex;
 
 	std::vector <int> __fds;
-	int __fdCount;
 	//Tizen::Base::Runtime::Mutex* __pFdLock;
 	std::string __name;
 	std::string __appId;

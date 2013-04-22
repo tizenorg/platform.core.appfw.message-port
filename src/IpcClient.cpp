@@ -37,8 +37,6 @@
 #include <queue>
 #include <map>
 
-#include <app_manager.h>
-
 #include "message-port-log.h"
 
 #include "IpcClient.h"
@@ -50,8 +48,7 @@ using namespace std;
 
 IpcClient::IpcClient(void)
 	: __pReverseSource(NULL)
-	, __fdCount(0)
-	//, __pFdLock(NULL)
+	, __pMutex(NULL)
 	, __pListener(NULL)
 {
 	__messageBuffer[0] = '\0';
@@ -76,7 +73,7 @@ IpcClient::~IpcClient(void)
 		close(fd);
 	}
 
-	//delete __pFdLock;
+	pthread_mutex_destroy(__pMutex);
 }
 
 int
@@ -84,6 +81,16 @@ IpcClient::Construct(const string& serverName, const IIpcClientEventListener* pL
 {
 	__name = serverName;
 	__pListener = const_cast <IIpcClientEventListener*>(pListener);
+
+	pthread_mutex_t* pMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
+	if (pMutex == NULL)
+	{
+		return -2;
+	}
+
+	pthread_mutex_init(pMutex, NULL);
+
+	__pMutex = pMutex;
 
 	int ret = MakeConnection();
 	if (ret != 0)
@@ -114,7 +121,6 @@ struct HelloMessage
 {
 	int pid;
 	bool reverse;
-	char appId[256];
 };
 
 int
@@ -134,27 +140,6 @@ IpcClient::MakeConnection(bool forReverse)
 
 	helloMessage.pid = getpid();
 	helloMessage.reverse = forReverse;
-
-	if (__fdCount == 0)
-	{
-		char* pAppId = NULL;
-		ret = app_manager_get_app_id(helloMessage.pid, &pAppId);
-		_LOGD("app_id: %s", pAppId);
-
-		if (ret < 0)
-		{
-			_LOGE("Failed to get_app_id: %d", ret);
-			return -1;
-		}
-
-		strncpy(helloMessage.appId, pAppId, 255);
-
-		_LOGD("app_id: %s", helloMessage.appId);
-
-		__appId = pAppId;
-
-		free(pAppId);
-	}
 
 	struct sockaddr_un server;
 
@@ -197,7 +182,7 @@ IpcClient::MakeConnection(bool forReverse)
 		FD_ZERO(&rset);
 		FD_SET(client, &rset);
 		wset = rset;
-		timeout.tv_sec = 10; // FIXME: replace 10 with const int
+		timeout.tv_sec = 10;
 		timeout.tv_usec = 0;
 
 		while (true)
@@ -275,8 +260,6 @@ IpcClient::MakeConnection(bool forReverse)
 	}
 	else
 	{
-		++__fdCount;
-
 		ReleaseFd(client);
 	}
 
@@ -420,10 +403,10 @@ IpcClient::AcquireFd(void)
 
 	while (fd == -1)
 	{
-		//__pFdLock->Acquire();
+		pthread_mutex_lock(__pMutex);
 		if (__fds.size() == 0)
 		{
-			//__pFdLock->Release();
+			pthread_mutex_unlock(__pMutex);
 			ret = MakeConnection(false);
 			if (ret < 0)
 			{
@@ -437,7 +420,7 @@ IpcClient::AcquireFd(void)
 		fd = __fds.back();
 		__fds.pop_back();
 
-		//__pFdLock->Release();
+		pthread_mutex_unlock(__pMutex);
 	}
 
 	return fd;
@@ -446,11 +429,11 @@ IpcClient::AcquireFd(void)
 void
 IpcClient::ReleaseFd(int fd)
 {
-	//__pFdLock->Acquire();
+	pthread_mutex_lock(__pMutex);
 
 	__fds.push_back(fd);
 
-	//__pFdLock->Release();
+	pthread_mutex_unlock(__pMutex);
 }
 
 int
@@ -603,8 +586,3 @@ IpcClient::SendRequest(const IPC::Message& message)
 	return ret;
 }
 
-string 
-IpcClient::GetAppId(void)
-{
-	return __appId;
-}
