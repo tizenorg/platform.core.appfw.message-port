@@ -80,18 +80,6 @@ int messageport_register_local_port(const char* local_port, messageport_message_
  */
 int messageport_register_trusted_local_port(const char* local_port, messageport_message_cb callback);
 
-
-/**
- * @brief Unregisters the local message port.
- *
- * @param [in] id The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
- * @return 0 on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- */
-int messageport_unregister_local_port(int id);
-
 /**
  * @brief Checks if the message port of a remote application is registered.
  *

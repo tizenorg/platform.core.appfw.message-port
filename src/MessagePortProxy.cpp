@@ -67,6 +67,7 @@ MessagePortProxy::Construct(void)
 	IpcClient* pIpcClient = new (std::nothrow) IpcClient();
 	if (pIpcClient == NULL)
 	{
+		_LOGE("Out of memory");
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 	}
 
@@ -76,13 +77,13 @@ MessagePortProxy::Construct(void)
 		delete pIpcClient;
 
 		_LOGE("Failed to create ipc client: %d.", ret);
-
 		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
 	pthread_mutex_t* pMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
 	if (pMutex == NULL)
 	{
+		_LOGE("Out of memory");
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 	}
 
@@ -164,6 +165,8 @@ MessagePortProxy::RegisterMessagePort(const string& localPort, bool isTrusted,  
 	if (pMsg == NULL)
 	{
 		bundle_free(b);
+
+		_LOGE("Out of memory");
 		return  MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 	}
 
@@ -233,6 +236,7 @@ MessagePortProxy::CheckRemotePort(const string& remoteAppId, const string& remot
 	{
 		bundle_free(b);
 
+		_LOGE("Out of memory");
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 	}
 
@@ -245,7 +249,6 @@ MessagePortProxy::CheckRemotePort(const string& remoteAppId, const string& remot
 	if (ret < 0)
 	{
 		_LOGE("Failed to send a request: %d.", ret);
-
 		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
@@ -367,6 +370,7 @@ MessagePortProxy::SendMessageInternal(const BundleBuffer& metadata, const Bundle
 	IPC::Message* pMsg = new MessagePort_sendMessage(metadata, buffer, &return_value);
 	if (pMsg == NULL)
 	{
+		_LOGE("Out of memory");
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 	}
 
@@ -389,7 +393,6 @@ MessagePortProxy::SendMessageInternal(const BundleBuffer& metadata, const Bundle
 	if (ret < 0)
 	{
 		_LOGE("Failed to send a request: %d.", ret);
-
 		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
@@ -431,6 +434,7 @@ MessagePortProxy::GetLocalPortNameN(int id)
 		it = __trustedIds.find(id);
 		if (it == __ids.end())
 		{
+			_LOGE("Invalid value %d", id);
 			return NULL;
 		}
 		else
@@ -459,6 +463,7 @@ MessagePortProxy::CheckTrustedLocalPort(int id, bool* trusted)
 		it = __trustedIds.find(id);
 		if (it == __ids.end())
 		{
+			_LOGE("Invalid value %d", id);
 			return MESSAGEPORT_ERROR_INVALID_PARAMETER;
 		}
 		else
@@ -486,6 +491,7 @@ MessagePortProxy::GetProxy(void)
 		MessagePortProxy* p = new MessagePortProxy();
 		if (p == NULL)
 		{
+			_LOGE("Out of memory");
 			return NULL;
 		}
 
