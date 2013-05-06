@@ -377,7 +377,7 @@ MessagePortProxy::SendMessageInternal(const BundleBuffer& metadata, const Bundle
 	// Check the message size
 	int len = 0;
 	bundle_raw* raw = NULL;
-	bundle_encode(buffer.b, &raw, &len);
+	bundle_encode_raw(buffer.b, &raw, &len);
 
 	bundle_free_encoded_rawdata(&raw);
 
