@@ -1,6 +1,3 @@
-%define debug_package %{nil}
-%define __strip /bin/true
-
 Name:       message-port
 Summary:    Message Port library
 Version: 	1.2.1.0
