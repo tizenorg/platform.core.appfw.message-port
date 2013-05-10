@@ -43,7 +43,7 @@ struct ParamTraits <BundleBuffer>
 	{
 		int len = 0;
 		bundle_raw* raw = NULL;
-		bundle_encode(p.b, &raw, &len);
+		bundle_encode_raw(p.b, &raw, &len);
 
 
 		m->WriteInt(len);
@@ -84,7 +84,7 @@ struct ParamTraits <BundleBuffer>
 			return false;
 		}
 
-		r->b = bundle_decode((const bundle_raw*)pBuffer, len);
+		r->b = bundle_decode_raw((const bundle_raw*)pBuffer, len);
 
 		return true;
 	}
