@@ -106,7 +106,7 @@ MessagePortProxy::Construct(void)
 
 	free(pAppId);
 
-	return 0;
+	return MESSAGEPORT_ERROR_NONE;
 }
 
 void
@@ -259,7 +259,7 @@ MessagePortProxy::CheckRemotePort(const string& remoteAppId, const string& remot
 			_LOGE("The remote message port (%s) is not found.", remotePort.c_str());
 
 			*exist = false;
-			return 0;
+			return MESSAGEPORT_ERROR_NONE;
 		}
 		else if (return_value == MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH)
 		{
@@ -276,7 +276,7 @@ MessagePortProxy::CheckRemotePort(const string& remoteAppId, const string& remot
 	}
 
 	*exist = true;
-	return 0;
+	return MESSAGEPORT_ERROR_NONE;
 }
 
 int
@@ -418,7 +418,7 @@ MessagePortProxy::SendMessageInternal(const BundleBuffer& metadata, const Bundle
 		}
 	}
 
-	return 0;
+	return MESSAGEPORT_ERROR_NONE;
 }
 
 char*
@@ -469,13 +469,13 @@ MessagePortProxy::CheckTrustedLocalPort(int id, bool* trusted)
 		else
 		{
 			*trusted = true;
-			return 0;
+			return MESSAGEPORT_ERROR_NONE;
 		}
 	}
 	else
 	{
 		*trusted = false;
-		return 0;
+		return MESSAGEPORT_ERROR_NONE;
 	}
 
 	return MESSAGEPORT_ERROR_INVALID_PARAMETER;

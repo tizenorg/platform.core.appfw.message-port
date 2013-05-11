@@ -111,6 +111,7 @@ messageport_send_bidirectional_message(int id, const char* remote_app_id, const 
 		ret = pProxy->CheckTrustedLocalPort(id, &trusted);
 		if (ret < 0)
 		{
+			free(pName);
 			return MESSAGEPORT_ERROR_INVALID_PARAMETER;
 		}
 

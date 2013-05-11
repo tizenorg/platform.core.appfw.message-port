@@ -37,6 +37,7 @@
 #include <queue>
 #include <map>
 
+#include "message-port.h"
 #include "message-port-log.h"
 
 #include "IpcClient.h"
@@ -85,7 +86,7 @@ IpcClient::Construct(const string& serverName, const IIpcClientEventListener* pL
 	pthread_mutex_t* pMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
 	if (pMutex == NULL)
 	{
-		return -2;
+		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 	}
 
 	pthread_mutex_init(pMutex, NULL);
@@ -107,7 +108,7 @@ IpcClient::Construct(const string& serverName, const IIpcClientEventListener* pL
 		}
 	}
 
-	return 0;
+	return MESSAGEPORT_ERROR_NONE;
 
 }
 
@@ -159,7 +160,7 @@ IpcClient::MakeConnection(bool forReverse)
 	if (client < 0)
 	{
 		_LOGE("Failed to create a socket : %s.", strerror(errno));
-		return -1;
+		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
 	int flags = fcntl(client, F_GETFL, 0);
@@ -270,7 +271,7 @@ IpcClient::MakeConnection(bool forReverse)
 		ReleaseFd(client);
 	}
 
-	return 0;
+	return MESSAGEPORT_ERROR_NONE;
 
 CATCH:
 	if (client != -1)
@@ -278,7 +279,7 @@ CATCH:
 		close(client);
 	}
 
-	return -1;
+	return MESSAGEPORT_ERROR_IO_ERROR;
 
 }
 
@@ -380,7 +381,7 @@ IpcClient::HandleReceivedMessage(GIOChannel* source, GIOCondition condition)
 				if (pMessage == NULL)
 				{
 					_LOGE("The memory is insufficient");
-					return -2;
+					return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 				}
 
 				if (__pListener)
@@ -418,7 +419,7 @@ IpcClient::AcquireFd(void)
 			if (ret < 0)
 			{
 				_LOGE("Failed to connect to the server.");
-				return -1;
+				return MESSAGEPORT_ERROR_IO_ERROR;
 			}
 
 			continue;
@@ -452,7 +453,7 @@ IpcClient::SendAsync(IPC::Message* pMessage)
 	if (fd == -1)
 	{
 		_LOGE("Failed to get fd.");
-		return -1;
+		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
 	int written = 0;
@@ -465,7 +466,7 @@ IpcClient::SendAsync(IPC::Message* pMessage)
 
 	ReleaseFd(fd);
 
-	return 0;
+	return MESSAGEPORT_ERROR_NONE;
 }
 
 int
@@ -477,7 +478,7 @@ IpcClient::SendSync(IPC::Message* pMessage)
 	if (pSyncMessage == NULL)
 	{
 		_LOGE("pMessage is not a sync message.");
-		return -1;
+		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
 	int messageId = SyncMessage::GetMessageId(*pSyncMessage);
@@ -486,7 +487,7 @@ IpcClient::SendSync(IPC::Message* pMessage)
 	if (fd < 0)
 	{
 		_LOGE("Failed to get fd.");
-		return -1;
+		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
 	char* pData = (char*) pSyncMessage->data();
@@ -512,13 +513,26 @@ IpcClient::SendSync(IPC::Message* pMessage)
 	int readSize = 0;
 	char* pEndOfMessage = NULL;
 
+	int ret = 0;
+
 	while (true)
 	{
-		poll(&pfd, 1, -1);
+		ret = poll(&pfd, 1, -1);
+		if (ret < 0)
+		{
+			if (errno == EINTR)
+			{
+				continue;
+			}
+
+			_LOGE("Failed to poll (%d, %s).", errno, strerror(errno));
+			return MESSAGEPORT_ERROR_IO_ERROR;
+		}
 
 		if (pfd.revents & POLLRDHUP)
 		{
-			return -1;
+			_LOGE("POLLRDHUP");
+			return MESSAGEPORT_ERROR_IO_ERROR;
 		}
 
 		if (pfd.revents & POLLIN)
@@ -526,7 +540,10 @@ IpcClient::SendSync(IPC::Message* pMessage)
 			readSize = read(fd, buffer, 1024);
 		}
 
-		message.append(buffer, readSize);
+		if (readSize > 0)
+		{
+			message.append(buffer, readSize);
+		}
 
 		pEndOfMessage = (char*) IPC::Message::FindNext(message.data(), message.data() + message.size());
 		if (pEndOfMessage)
@@ -535,7 +552,7 @@ IpcClient::SendSync(IPC::Message* pMessage)
 			if (pReply == NULL)
 			{
 				_LOGE("The memory is insufficient.");
-				return -2;
+				return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 			}
 
 			break;
@@ -550,7 +567,7 @@ IpcClient::SendSync(IPC::Message* pMessage)
 
 	ReleaseFd(fd);
 
-	return 0;
+	return MESSAGEPORT_ERROR_NONE;
 }
 
 int
