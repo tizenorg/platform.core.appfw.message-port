@@ -68,7 +68,8 @@ typedef void (*messageport_message_cb)(int id, const char* remote_app_id, const 
 int messageport_register_local_port(const char* local_port, messageport_message_cb callback);
 
 /**
- * @brief Registers the trusted local message port.
+ * @brief Registers the trusted local message port. @n
+ *  This allows communications only if the applications are signed with the same certificate which is uniquely assigned to the developer.
  *
  * @param [in] local_port the name of the local message port
  * @param [in] callback The callback function to be called when a message is received
@@ -138,7 +139,8 @@ int messageport_check_trusted_remote_port(const char* remote_app_id, const char 
 int messageport_send_message(const char* remote_app_id, const char* remote_port, bundle* message);
 
 /**
- * @brief Sends a trusted message to the message port of a remote application.
+ * @brief Sends a trusted message to the message port of a remote application. @n
+ *  This allows communications only if the applications are signed with the same certificate which is uniquely assigned to the developer.
  *
  * @param [in] remote_app_id The ID of the remote application
  * @param [in] remote_port the name of the remote message port
@@ -185,7 +187,7 @@ int messageport_send_trusted_message(const char* remote_app_id, const char* remo
  *
  *   int id = messageport_register_local_port("HelloPort", OnMessageReceived);
  *
- *   int ret = messageport_send_message(id, "0123456789.BasicApp", "BasicAppPort", b);
+ *   int ret = messageport_send_bidirectional_message(id, "0123456789.BasicApp", "BasicAppPort", b);
  *
  *   bundle_free(b);
  * }
@@ -194,6 +196,7 @@ int messageport_send_bidirectional_message(int id, const char* remote_app_id, co
 
 /**
  * @brief Sends a trusted message to the message port of a remote application. This method is used for the bidirectional communication.
+ *  This allows communications only if the applications are signed with the same certificate which is uniquely assigned to the developer.
  *
  * @param [in] id The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
  * @param [in] remote_app_id The ID of the remote application
