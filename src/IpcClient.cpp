@@ -128,6 +128,7 @@ int
 IpcClient::MakeConnection(bool forReverse)
 {
 	int ret = 0;
+	int retry = 0;
 
 	size_t socketNameLength = 0;
 	string socketName;
@@ -171,12 +172,30 @@ IpcClient::MakeConnection(bool forReverse)
 		goto CATCH;
 	}
 
-	ret = connect(client, (struct sockaddr*) &server, serverLen);
-	if (ret != 0)
+	// Retry if the server is not ready
+	retry = 5;
+	while (retry > 0)
+	{
+		ret = connect(client, (struct sockaddr*) &server, serverLen);
+		if (ret < 0 && errno == ENOENT)
+		{
+			_LOGD("The server is not ready. %d", retry);
+
+			usleep(1000 * 1000);
+
+			--retry;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	if (ret < 0)
 	{
 		if (errno != EINPROGRESS)
 		{
-			_LOGE("Failed to connect to server(%s) : %s", socketName.c_str(), strerror(errno));
+			_LOGE("Failed to connect to server(%s) : %d, %s", socketName.c_str(), errno, strerror(errno));
 			goto CATCH;
 		}
 
@@ -497,6 +516,13 @@ IpcClient::SendSync(IPC::Message* pMessage)
 	while (remain > 0)
 	{
 		written = write(fd, (char*) pData, remain);
+		if (written < 0)
+		{
+			_LOGE("Failed to send a request: %d, %s", errno, strerror(errno));
+
+			ReleaseFd(fd);
+			return MESSAGEPORT_ERROR_IO_ERROR;
+		}
 		remain -= written;
 		pData += written;
 	}
@@ -532,6 +558,8 @@ IpcClient::SendSync(IPC::Message* pMessage)
 		if (pfd.revents & POLLRDHUP)
 		{
 			_LOGE("POLLRDHUP");
+
+			ReleaseFd(fd);
 			return MESSAGEPORT_ERROR_IO_ERROR;
 		}
 
