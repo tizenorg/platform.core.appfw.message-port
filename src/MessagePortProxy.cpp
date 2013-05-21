@@ -531,6 +531,7 @@ MessagePortProxy::IsLocalPortRegisted(const string& localPort, bool trusted, int
 		}
 		else
 		{
+			_LOGD("MessagePort name is already registered.");
 			for (map<int, string>::iterator it = __ids.begin(); it != __ids.end(); ++it)
 			{
 				if (localPort.compare(it->second) == 0)
@@ -550,7 +551,8 @@ MessagePortProxy::IsLocalPortRegisted(const string& localPort, bool trusted, int
 		}
 		else
 		{
-			for (map<int, string>::iterator it = __ids.begin(); it != __trustedIds.end(); ++it)
+			_LOGD("MessagePort name is already registered.");
+			for (map<int, string>::iterator it = __trustedIds.begin(); it != __trustedIds.end(); ++it)
 			{
 				if (localPort.compare(it->second) == 0)
 				{

@@ -55,7 +55,8 @@ typedef void (*messageport_message_cb)(int id, const char* remote_app_id, const 
 
 
 /**
- * @brief Registers the local message port.
+ * @brief Registers the local message port. @n
+ * If the message port name is already registered, the previous message port id returns and the callback function is changed.
  *
  * @param [in] local_port the name of the local message port
  * @param [in] callback The callback function to be called when a message is received
@@ -69,7 +70,8 @@ int messageport_register_local_port(const char* local_port, messageport_message_
 
 /**
  * @brief Registers the trusted local message port. @n
- *  This allows communications only if the applications are signed with the same certificate which is uniquely assigned to the developer.
+ * If the message port name is already registered, the previous message port id returns and the callback function is changed. @n
+ * This allows communications only if the applications are signed with the same certificate which is uniquely assigned to the developer.
  *
  * @param [in] local_port the name of the local message port
  * @param [in] callback The callback function to be called when a message is received
