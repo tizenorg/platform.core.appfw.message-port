@@ -479,6 +479,14 @@ IpcClient::SendAsync(IPC::Message* pMessage)
 	while (remain > 0)
 	{
 		written = write(fd, (char*) pData, remain);
+		if (written < 0)
+		{
+			_LOGE("Failed to send a request: %d, %s", errno, strerror(errno));
+
+			ReleaseFd(fd);
+			return MESSAGEPORT_ERROR_IO_ERROR;
+		}
+
 		remain -= written;
 		pData += written;
 	}
@@ -523,6 +531,7 @@ IpcClient::SendSync(IPC::Message* pMessage)
 			ReleaseFd(fd);
 			return MESSAGEPORT_ERROR_IO_ERROR;
 		}
+
 		remain -= written;
 		pData += written;
 	}
@@ -552,6 +561,8 @@ IpcClient::SendSync(IPC::Message* pMessage)
 			}
 
 			_LOGE("Failed to poll (%d, %s).", errno, strerror(errno));
+
+			ReleaseFd(fd);
 			return MESSAGEPORT_ERROR_IO_ERROR;
 		}
 
@@ -580,6 +591,8 @@ IpcClient::SendSync(IPC::Message* pMessage)
 			if (pReply == NULL)
 			{
 				_LOGE("The memory is insufficient.");
+
+				ReleaseFd(fd);
 				return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 			}
 
