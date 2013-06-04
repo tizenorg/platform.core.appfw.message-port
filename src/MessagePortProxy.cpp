@@ -384,6 +384,8 @@ MessagePortProxy::SendMessageInternal(const BundleBuffer& metadata, const Bundle
 	if (len > MAX_MESSAGE_SIZE)
 	{
 		_LOGE("The size of message (%d) has exceeded the maximum limit.", len);
+
+		delete pMsg;
 		return MESSAGEPORT_ERROR_MAX_EXCEEDED;
 	}
 
