@@ -179,7 +179,7 @@ IpcClient::MakeConnection(bool forReverse)
 		ret = connect(client, (struct sockaddr*) &server, serverLen);
 		if (ret < 0 && errno == ENOENT)
 		{
-			_LOGD("The server is not ready. %d", retry);
+			_LOGI("The server is not ready. %d", retry);
 
 			usleep(1000 * 1000);
 
@@ -319,7 +319,7 @@ IpcClient::HandleReceivedMessage(GIOChannel* source, GIOCondition condition)
 
 	if (condition & G_IO_HUP)
 	{
-		_LOGD("G_IO_HUP, the connection is closed.");
+		_LOGI("G_IO_HUP, the connection is closed.");
 
 		g_source_destroy(__pReverseSource);
 		g_source_unref(__pReverseSource);
@@ -347,11 +347,11 @@ IpcClient::HandleReceivedMessage(GIOChannel* source, GIOCondition condition)
 			{
 				if (status == G_IO_STATUS_EOF)
 				{
-					_LOGD("G_IO_STATUS_EOF, the connection is closed.");
+					_LOGI("G_IO_STATUS_EOF, the connection is closed.");
 				}
 				else
 				{
-					_LOGD("G_IO_STATUS_ERROR, the connection is closed.");
+					_LOGI("G_IO_STATUS_ERROR, the connection is closed.");
 				}
 
 				pGError = NULL;

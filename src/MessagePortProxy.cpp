@@ -120,7 +120,7 @@ MessagePortProxy::OnIpcResponseReceived(IpcClient& client, const IPC::Message& m
 int
 MessagePortProxy::RegisterMessagePort(const string& localPort, bool isTrusted,  messageport_message_cb callback)
 {
-	_LOGD("Register a message port : [%s:%s]", __appId.c_str(), localPort.c_str());
+	_LOGI("Register a message port : [%s:%s]", __appId.c_str(), localPort.c_str());
 
 	int id = 0;
 
@@ -208,7 +208,7 @@ MessagePortProxy::RegisterMessagePort(const string& localPort, bool isTrusted,  
 int
 MessagePortProxy::CheckRemotePort(const string& remoteAppId, const string& remotePort,	bool isTrusted, bool *exist)
 {
-	_LOGD("Check a remote port : [%s:%s]", remoteAppId.c_str(), remotePort.c_str());
+	_LOGI("Check a remote port : [%s:%s]", remoteAppId.c_str(), remotePort.c_str());
 
 	bundle *b = bundle_create();
 
@@ -263,7 +263,7 @@ MessagePortProxy::CheckRemotePort(const string& remoteAppId, const string& remot
 		}
 		else if (return_value == MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH)
 		{
-			_LOGE("The remote application (%s) is not signed with the same certificate", remoteAppId.c_str());
+			_LOGI("The remote application (%s) is not signed with the same certificate", remoteAppId.c_str());
 
 			*exist = true;
 			return MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH;
@@ -282,7 +282,7 @@ MessagePortProxy::CheckRemotePort(const string& remoteAppId, const string& remot
 int
 MessagePortProxy::SendMessage(const string& remoteAppId, const string& remotePort, bool trustedMessage, bundle* data)
 {
-	_LOGD("Send a message to : [%s:%s]", remoteAppId.c_str(), remotePort.c_str());
+	_LOGI("Send a message to : [%s:%s]", remoteAppId.c_str(), remotePort.c_str());
 
 	int ret = 0;
 
@@ -319,7 +319,7 @@ MessagePortProxy::SendMessage(const string& remoteAppId, const string& remotePor
 int
 MessagePortProxy::SendMessage(const string& localPort, bool trustedPort, const string& remoteAppId, const string& remotePort, bool trustedMessage, bundle* data)
 {
-	_LOGD("Send a bidirectional message from [%s:%s] to [%s:%s]", __appId.c_str(), localPort.c_str(), remoteAppId.c_str(), remotePort.c_str());
+	_LOGI("Send a bidirectional message from [%s:%s] to [%s:%s]", __appId.c_str(), localPort.c_str(), remoteAppId.c_str(), remotePort.c_str());
 
 	int ret = 0;
 
@@ -533,7 +533,7 @@ MessagePortProxy::IsLocalPortRegisted(const string& localPort, bool trusted, int
 		}
 		else
 		{
-			_LOGD("MessagePort name is already registered.");
+			_LOGI("MessagePort name is already registered.");
 			for (map<int, string>::iterator it = __ids.begin(); it != __ids.end(); ++it)
 			{
 				if (localPort.compare(it->second) == 0)
@@ -553,7 +553,7 @@ MessagePortProxy::IsLocalPortRegisted(const string& localPort, bool trusted, int
 		}
 		else
 		{
-			_LOGD("MessagePort name is already registered.");
+			_LOGI("MessagePort name is already registered.");
 			for (map<int, string>::iterator it = __trustedIds.begin(); it != __trustedIds.end(); ++it)
 			{
 				if (localPort.compare(it->second) == 0)
@@ -579,7 +579,7 @@ MessagePortProxy::OnSendMessageInternal(const BundleBuffer& metadata, const Bund
 
 	string messageType = bundle_get_val(b, MESSAGE_TYPE);
 
-	_LOGD("Message received to App: %s, Port: %s, Trusted: %s", pRemoteAppId, pRemotePort, trustedMessage.c_str());
+	_LOGI("Message received to App: %s, Port: %s, Trusted: %s", pRemoteAppId, pRemotePort, trustedMessage.c_str());
 
 	int id = 0;
 	messageport_message_cb callback;
@@ -608,7 +608,7 @@ MessagePortProxy::OnSendMessageInternal(const BundleBuffer& metadata, const Bund
 			string localPort = bundle_get_val(b, LOCAL_PORT);
 			string trustedLocal = bundle_get_val(b, TRUSTED_LOCAL);
 
-			_LOGD("From App: %s, Port: %s, TrustedLocal: %s", localAppId.c_str(), localPort.c_str(), trustedLocal.c_str());
+			_LOGI("From App: %s, Port: %s, TrustedLocal: %s", localAppId.c_str(), localPort.c_str(), trustedLocal.c_str());
 
 			bool trustedPort = (trustedLocal.compare("TRUE") == 0);
 
@@ -618,7 +618,7 @@ MessagePortProxy::OnSendMessageInternal(const BundleBuffer& metadata, const Bund
 	}
 	else
 	{
-		_LOGD("No callback");
+		_LOGI("No callback");
 	}
 
 	bundle_free(b);
