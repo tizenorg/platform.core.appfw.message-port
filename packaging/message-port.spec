@@ -5,6 +5,7 @@ Release:    1
 Group:		TO_BE/FILLED_IN
 License:    Apache License, Version 2.0
 Source0:    %{name}-%{version}.tar.gz
+Source1001: 	message-port.manifest
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(bundle)
@@ -35,6 +36,7 @@ Message Port library (DEV)
 
 %prep
 %setup -q
+cp %{SOURCE1001} .
 
 %build
 MAJORVER=`echo %{version} | awk 'BEGIN {FS="."}{print $1}'`
@@ -58,11 +60,13 @@ install LICENSE.APLv2  %{buildroot}/usr/share/license/%{name}
 
 
 %files
+%manifest %{name}.manifest
 %{_libdir}/libmessage-port.so.*
 %manifest message-port.manifest
 /usr/share/license/%{name}
 
 %files devel
+%manifest %{name}.manifest
 %{_includedir}/appfw/*.h
 %{_libdir}/pkgconfig/*.pc
 %{_libdir}/libmessage-port.so
