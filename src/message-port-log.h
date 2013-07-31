@@ -32,8 +32,8 @@ extern "C" {
 #define _LOGE(fmt, arg...) LOGE(fmt, ##arg)
 #define _LOGI(fmt, arg...) LOGI(fmt, ##arg)
 
-//#define _SECURE_LOGE(fmt, arg...) SECURE_LOGE(fmt, ##arg)
-//#define _SECURE_LOGI(fmt, arg...) SECURE_LOGI(fmt, ##arg)
+#define _SECURE_LOGE(fmt, arg...) SECURE_LOGE(fmt, ##arg)
+#define _SECURE_LOGI(fmt, arg...) SECURE_LOGI(fmt, ##arg)
 
 /**
  * @}
