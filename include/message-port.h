@@ -20,7 +20,9 @@
 #define __APPFW_MESSAGE_PORT_H__
 
 #ifdef __GNUC__
-#	define EXPORT_API __attribute__((visibility("default")))
+#	ifndef EXPORT_API
+#		define EXPORT_API __attribute__((visibility("default")))
+#	endif
 #else
 #	define EXPORT_API
 #endif
