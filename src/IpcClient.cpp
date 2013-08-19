@@ -120,7 +120,6 @@ IpcClient::GetName(void) const
 
 struct HelloMessage
 {
-	int pid;
 	int reverse;
 };
 
@@ -138,9 +137,8 @@ IpcClient::MakeConnection(bool forReverse)
 
 	socketNameLength = socketName.size() + 1;
 
-	HelloMessage helloMessage = {0, 0};
+	HelloMessage helloMessage = {0};
 
-	helloMessage.pid = getpid();
 	if (forReverse)
 	{
 		helloMessage.reverse = 1;
