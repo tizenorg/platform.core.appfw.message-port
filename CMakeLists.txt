@@ -25,7 +25,7 @@ SET (${this_target}_SOURCE_FILES
 	src/MessagePortProxy.cpp
 )
 
-SET(requires "dlog bundle glib-2.0 chromium")
+SET(requires "dlog bundle glib-2.0 aul chromium")
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(${this_target} REQUIRED ${requires})
@@ -59,7 +59,7 @@ TARGET_LINK_LIBRARIES(${this_target} "-ldlog" )
 TARGET_LINK_LIBRARIES(${this_target} "-lbundle" )
 TARGET_LINK_LIBRARIES(${this_target} "-lglib-2.0" )
 TARGET_LINK_LIBRARIES(${this_target} "-lchromium" )
-TARGET_LINK_LIBRARIES(${this_target} "-lcapi-appfw-app-manager" )
+TARGET_LINK_LIBRARIES(${this_target} "-laul" )
 
 SET_TARGET_PROPERTIES(${this_target}
 	PROPERTIES

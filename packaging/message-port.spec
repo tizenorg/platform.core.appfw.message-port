@@ -10,7 +10,7 @@ BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(bundle)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(chromium)
-BuildRequires:  pkgconfig(capi-appfw-app-manager)
+BuildRequires:  pkgconfig(aul)
 
 # runtime requires
 Requires: chromium

@@ -26,7 +26,7 @@
 #include <unistd.h>
 #include <sstream>
 
-#include <app_manager.h>
+#include <aul/aul.h>
 
 #include "message-port.h"
 #include "message-port-messages.h"
@@ -93,18 +93,17 @@ MessagePortProxy::Construct(void)
 	__pIpcClient = pIpcClient;
 
 	int pid = getpid();
-	char* pAppId = NULL;
-	ret = app_manager_get_app_id(pid, &pAppId);
-	if (ret < 0)
+	char buffer[256] = {0, };
+
+	ret = aul_app_get_appid_bypid(pid, buffer, sizeof(buffer));
+	if (ret != AUL_R_OK)
 	{
-		_LOGE("Failed to get_app_id: %d", ret);
+		_LOGE("Failed to get the application ID: %d", ret);
 
 		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
-	__appId = pAppId;
-
-	free(pAppId);
+	__appId = buffer;
 
 	return MESSAGEPORT_ERROR_NONE;
 }
