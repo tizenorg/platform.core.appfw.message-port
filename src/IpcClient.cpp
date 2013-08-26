@@ -261,6 +261,7 @@ IpcClient::MakeConnection(bool forReverse)
 	ret = write(client, &helloMessage, sizeof(helloMessage));
 	if (ret < 0)
 	{
+		_LOGE("Failed to send a hello message: %d, %s", errno, strerror(errno));
 		goto CATCH;
 	}
 
@@ -497,8 +498,16 @@ IpcClient::SendAsync(IPC::Message* pMessage)
 int
 IpcClient::SendSync(IPC::Message* pMessage)
 {
+	int error = MESSAGEPORT_ERROR_NONE;
+	int ret = 0;
+
+	int readSize = 0;
+	char buffer[1024];
+	char* pEndOfMessage = NULL;
+
+	std::string message;
+
 	IPC::Message* pReply = NULL;
-	MessageReplyDeserializer* pReplyDeserializer = NULL;
 	IPC::SyncMessage* pSyncMessage = dynamic_cast <IPC::SyncMessage*>(pMessage);
 	if (pSyncMessage == NULL)
 	{
@@ -506,12 +515,15 @@ IpcClient::SendSync(IPC::Message* pMessage)
 		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
+	MessageReplyDeserializer* pReplyDeserializer = pSyncMessage->GetReplyDeserializer();
 	int messageId = SyncMessage::GetMessageId(*pSyncMessage);
 
 	int fd = AcquireFd();
 	if (fd < 0)
 	{
 		_LOGE("Failed to get fd.");
+
+		delete pReplyDeserializer;
 		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
@@ -526,8 +538,8 @@ IpcClient::SendSync(IPC::Message* pMessage)
 		{
 			_LOGE("Failed to send a request: %d, %s", errno, strerror(errno));
 
-			ReleaseFd(fd);
-			return MESSAGEPORT_ERROR_IO_ERROR;
+			error = MESSAGEPORT_ERROR_IO_ERROR;
+			goto CATCH;
 		}
 
 		remain -= written;
@@ -541,13 +553,6 @@ IpcClient::SendSync(IPC::Message* pMessage)
 	pfd.events = POLLIN | POLLRDHUP;
 	pfd.revents = 0;
 
-	char buffer[1024];
-	std::string message;
-	int readSize = 0;
-	char* pEndOfMessage = NULL;
-
-	int ret = 0;
-
 	while (true)
 	{
 		ret = poll(&pfd, 1, -1);
@@ -560,16 +565,16 @@ IpcClient::SendSync(IPC::Message* pMessage)
 
 			_LOGE("Failed to poll (%d, %s).", errno, strerror(errno));
 
-			ReleaseFd(fd);
-			return MESSAGEPORT_ERROR_IO_ERROR;
+			error = MESSAGEPORT_ERROR_IO_ERROR;
+			goto CATCH;
 		}
 
 		if (pfd.revents & POLLRDHUP)
 		{
 			_LOGE("POLLRDHUP");
 
-			ReleaseFd(fd);
-			return MESSAGEPORT_ERROR_IO_ERROR;
+			error = MESSAGEPORT_ERROR_IO_ERROR;
+			goto CATCH;
 		}
 
 		if (pfd.revents & POLLIN)
@@ -590,23 +595,23 @@ IpcClient::SendSync(IPC::Message* pMessage)
 			{
 				_LOGE("The memory is insufficient.");
 
-				ReleaseFd(fd);
-				return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
+				error = MESSAGEPORT_ERROR_OUT_OF_MEMORY;
+				goto CATCH;
 			}
 
 			break;
 		}
 	}
 
-	pReplyDeserializer = pSyncMessage->GetReplyDeserializer();
 	pReplyDeserializer->SerializeOutputParameters(*pReply);
-
 	delete pReply;
+
+CATCH:
 	delete pReplyDeserializer;
 
 	ReleaseFd(fd);
 
-	return MESSAGEPORT_ERROR_NONE;
+	return error;
 }
 
 int
