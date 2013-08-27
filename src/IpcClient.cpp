@@ -120,7 +120,6 @@ IpcClient::GetName(void) const
 
 struct HelloMessage
 {
-	int pid;
 	int reverse;
 };
 
@@ -138,9 +137,8 @@ IpcClient::MakeConnection(bool forReverse)
 
 	socketNameLength = socketName.size() + 1;
 
-	HelloMessage helloMessage = {0, 0};
+	HelloMessage helloMessage = {0};
 
-	helloMessage.pid = getpid();
 	if (forReverse)
 	{
 		helloMessage.reverse = 1;
@@ -179,7 +177,7 @@ IpcClient::MakeConnection(bool forReverse)
 		ret = connect(client, (struct sockaddr*) &server, serverLen);
 		if (ret < 0 && errno == ENOENT)
 		{
-			_LOGD("The server is not ready. %d", retry);
+			_LOGI("The server is not ready. %d", retry);
 
 			usleep(1000 * 1000);
 
@@ -263,6 +261,7 @@ IpcClient::MakeConnection(bool forReverse)
 	ret = write(client, &helloMessage, sizeof(helloMessage));
 	if (ret < 0)
 	{
+		_LOGE("Failed to send a hello message: %d, %s", errno, strerror(errno));
 		goto CATCH;
 	}
 
@@ -319,7 +318,7 @@ IpcClient::HandleReceivedMessage(GIOChannel* source, GIOCondition condition)
 
 	if (condition & G_IO_HUP)
 	{
-		_LOGD("G_IO_HUP, the connection is closed.");
+		_LOGI("G_IO_HUP, the connection is closed.");
 
 		g_source_destroy(__pReverseSource);
 		g_source_unref(__pReverseSource);
@@ -347,11 +346,11 @@ IpcClient::HandleReceivedMessage(GIOChannel* source, GIOCondition condition)
 			{
 				if (status == G_IO_STATUS_EOF)
 				{
-					_LOGD("G_IO_STATUS_EOF, the connection is closed.");
+					_LOGI("G_IO_STATUS_EOF, the connection is closed.");
 				}
 				else
 				{
-					_LOGD("G_IO_STATUS_ERROR, the connection is closed.");
+					_LOGI("G_IO_STATUS_ERROR, the connection is closed.");
 				}
 
 				pGError = NULL;
@@ -479,6 +478,14 @@ IpcClient::SendAsync(IPC::Message* pMessage)
 	while (remain > 0)
 	{
 		written = write(fd, (char*) pData, remain);
+		if (written < 0)
+		{
+			_LOGE("Failed to send a request: %d, %s", errno, strerror(errno));
+
+			ReleaseFd(fd);
+			return MESSAGEPORT_ERROR_IO_ERROR;
+		}
+
 		remain -= written;
 		pData += written;
 	}
@@ -491,8 +498,16 @@ IpcClient::SendAsync(IPC::Message* pMessage)
 int
 IpcClient::SendSync(IPC::Message* pMessage)
 {
+	int error = MESSAGEPORT_ERROR_NONE;
+	int ret = 0;
+
+	int readSize = 0;
+	char buffer[1024];
+	char* pEndOfMessage = NULL;
+
+	std::string message;
+
 	IPC::Message* pReply = NULL;
-	MessageReplyDeserializer* pReplyDeserializer = NULL;
 	IPC::SyncMessage* pSyncMessage = dynamic_cast <IPC::SyncMessage*>(pMessage);
 	if (pSyncMessage == NULL)
 	{
@@ -500,12 +515,15 @@ IpcClient::SendSync(IPC::Message* pMessage)
 		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
+	MessageReplyDeserializer* pReplyDeserializer = pSyncMessage->GetReplyDeserializer();
 	int messageId = SyncMessage::GetMessageId(*pSyncMessage);
 
 	int fd = AcquireFd();
 	if (fd < 0)
 	{
 		_LOGE("Failed to get fd.");
+
+		delete pReplyDeserializer;
 		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
@@ -520,9 +538,10 @@ IpcClient::SendSync(IPC::Message* pMessage)
 		{
 			_LOGE("Failed to send a request: %d, %s", errno, strerror(errno));
 
-			ReleaseFd(fd);
-			return MESSAGEPORT_ERROR_IO_ERROR;
+			error = MESSAGEPORT_ERROR_IO_ERROR;
+			goto CATCH;
 		}
+
 		remain -= written;
 		pData += written;
 	}
@@ -533,13 +552,6 @@ IpcClient::SendSync(IPC::Message* pMessage)
 	pfd.fd = fd;
 	pfd.events = POLLIN | POLLRDHUP;
 	pfd.revents = 0;
-
-	char buffer[1024];
-	std::string message;
-	int readSize = 0;
-	char* pEndOfMessage = NULL;
-
-	int ret = 0;
 
 	while (true)
 	{
@@ -552,15 +564,17 @@ IpcClient::SendSync(IPC::Message* pMessage)
 			}
 
 			_LOGE("Failed to poll (%d, %s).", errno, strerror(errno));
-			return MESSAGEPORT_ERROR_IO_ERROR;
+
+			error = MESSAGEPORT_ERROR_IO_ERROR;
+			goto CATCH;
 		}
 
 		if (pfd.revents & POLLRDHUP)
 		{
 			_LOGE("POLLRDHUP");
 
-			ReleaseFd(fd);
-			return MESSAGEPORT_ERROR_IO_ERROR;
+			error = MESSAGEPORT_ERROR_IO_ERROR;
+			goto CATCH;
 		}
 
 		if (pfd.revents & POLLIN)
@@ -580,22 +594,24 @@ IpcClient::SendSync(IPC::Message* pMessage)
 			if (pReply == NULL)
 			{
 				_LOGE("The memory is insufficient.");
-				return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
+
+				error = MESSAGEPORT_ERROR_OUT_OF_MEMORY;
+				goto CATCH;
 			}
 
 			break;
 		}
 	}
 
-	pReplyDeserializer = pSyncMessage->GetReplyDeserializer();
 	pReplyDeserializer->SerializeOutputParameters(*pReply);
-
 	delete pReply;
+
+CATCH:
 	delete pReplyDeserializer;
 
 	ReleaseFd(fd);
 
-	return MESSAGEPORT_ERROR_NONE;
+	return error;
 }
 
 int

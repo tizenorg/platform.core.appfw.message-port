@@ -19,6 +19,14 @@
 #ifndef __APPFW_MESSAGE_PORT_H__
 #define __APPFW_MESSAGE_PORT_H__
 
+#ifdef __GNUC__
+#	ifndef EXPORT_API
+#		define EXPORT_API __attribute__((visibility("default")))
+#	endif
+#else
+#	define EXPORT_API
+#endif
+
 #include <bundle.h>
 
 #ifdef __cplusplus
@@ -55,7 +63,8 @@ typedef void (*messageport_message_cb)(int id, const char* remote_app_id, const 
 
 
 /**
- * @brief Registers the local message port.
+ * @brief Registers the local message port. @n
+ * If the message port name is already registered, the previous message port id returns and the callback function is changed.
  *
  * @param [in] local_port the name of the local message port
  * @param [in] callback The callback function to be called when a message is received
@@ -65,11 +74,12 @@ typedef void (*messageport_message_cb)(int id, const char* remote_app_id, const 
  * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
-int messageport_register_local_port(const char* local_port, messageport_message_cb callback);
+EXPORT_API int messageport_register_local_port(const char* local_port, messageport_message_cb callback);
 
 /**
  * @brief Registers the trusted local message port. @n
- *  This allows communications only if the applications are signed with the same certificate which is uniquely assigned to the developer.
+ * If the message port name is already registered, the previous message port id returns and the callback function is changed. @n
+ * This allows communications only if the applications are signed with the same certificate which is uniquely assigned to the developer.
  *
  * @param [in] local_port the name of the local message port
  * @param [in] callback The callback function to be called when a message is received
@@ -79,7 +89,7 @@ int messageport_register_local_port(const char* local_port, messageport_message_
  * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
-int messageport_register_trusted_local_port(const char* local_port, messageport_message_cb callback);
+EXPORT_API int messageport_register_trusted_local_port(const char* local_port, messageport_message_cb callback);
 
 /**
  * @brief Checks if the message port of a remote application is registered.
@@ -93,7 +103,7 @@ int messageport_register_trusted_local_port(const char* local_port, messageport_
  * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
-int messageport_check_remote_port(const char* remote_app_id, const char *remote_port, bool* exist);
+EXPORT_API int messageport_check_remote_port(const char* remote_app_id, const char *remote_port, bool* exist);
 
 /**
  * @brief Checks if the trusted message port of a remote application is registered.
@@ -108,7 +118,7 @@ int messageport_check_remote_port(const char* remote_app_id, const char *remote_
  * @retval #MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH The remote application is not signed with the same certificate
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
-int messageport_check_trusted_remote_port(const char* remote_app_id, const char *remote_port, bool* exist);
+EXPORT_API int messageport_check_trusted_remote_port(const char* remote_app_id, const char *remote_port, bool* exist);
 
 /**
  * @brief Sends a message to the message port of a remote application.
@@ -136,7 +146,7 @@ int messageport_check_trusted_remote_port(const char* remote_app_id, const char 
  * bundle_free(b);
  * @endcode
  */
-int messageport_send_message(const char* remote_app_id, const char* remote_port, bundle* message);
+EXPORT_API int messageport_send_message(const char* remote_app_id, const char* remote_port, bundle* message);
 
 /**
  * @brief Sends a trusted message to the message port of a remote application. @n
@@ -154,7 +164,7 @@ int messageport_send_message(const char* remote_app_id, const char* remote_port,
  * @retval #MESSAGEPORT_ERROR_MAX_EXCEEDED The size of message has exceeded the maximum limit
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
-int messageport_send_trusted_message(const char* remote_app_id, const char* remote_port, bundle* message);
+EXPORT_API int messageport_send_trusted_message(const char* remote_app_id, const char* remote_port, bundle* message);
 
 /**
  * @brief Sends a message to the message port of a remote application. This method is used for the bidirectional communication.
@@ -192,7 +202,7 @@ int messageport_send_trusted_message(const char* remote_app_id, const char* remo
  *   bundle_free(b);
  * }
  */
-int messageport_send_bidirectional_message(int id, const char* remote_app_id, const char* remote_port, bundle* data);
+EXPORT_API int messageport_send_bidirectional_message(int id, const char* remote_app_id, const char* remote_port, bundle* data);
 
 /**
  * @brief Sends a trusted message to the message port of a remote application. This method is used for the bidirectional communication.
@@ -211,7 +221,7 @@ int messageport_send_bidirectional_message(int id, const char* remote_app_id, co
  * @retval #MESSAGEPORT_ERROR_MAX_EXCEEDED The size of message has exceeded the maximum limit
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
-int messageport_send_bidirectional_trusted_message(int id, const char* remote_app_id, const char* remote_port, bundle* data);
+EXPORT_API int messageport_send_bidirectional_trusted_message(int id, const char* remote_app_id, const char* remote_port, bundle* data);
 
 
 /**
@@ -225,7 +235,7 @@ int messageport_send_bidirectional_trusted_message(int id, const char* remote_ap
  * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
  * @remarks @a name must be released with free() by you
  */
-int messageport_get_local_port_name(int id, char **name);
+EXPORT_API int messageport_get_local_port_name(int id, char **name);
 
 /**
  * @brief Checks if the local message port is trusted.
@@ -237,7 +247,7 @@ int messageport_get_local_port_name(int id, char **name);
  * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
  */
-int messageport_check_trusted_local_port(int id, bool *trusted);
+EXPORT_API int messageport_check_trusted_local_port(int id, bool *trusted);
 
 /**
  * @}

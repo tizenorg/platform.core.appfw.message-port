@@ -1,6 +1,6 @@
 Name:       message-port
 Summary:    Message Port library
-Version: 	1.2.1.0
+Version: 	1.2.2.0
 Release:    1
 Group:		TO_BE/FILLED_IN
 License:    Apache License, Version 2.0
@@ -11,7 +11,7 @@ BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(bundle)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(chromium)
-BuildRequires:  pkgconfig(capi-appfw-app-manager)
+BuildRequires:  pkgconfig(aul)
 
 # runtime requires
 Requires: chromium

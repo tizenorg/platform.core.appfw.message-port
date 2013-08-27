@@ -25,7 +25,7 @@ SET (${this_target}_SOURCE_FILES
 	src/MessagePortProxy.cpp
 )
 
-SET(requires "dlog bundle glib-2.0 chromium")
+SET(requires "dlog bundle glib-2.0 aul chromium")
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(${this_target} REQUIRED ${requires})
@@ -36,11 +36,11 @@ ENDFOREACH(flag)
 SET(EXTRA_CFLAGS  "${EXTRA_CFLAGS} -Wall" )
 
 ## SET C COMPILER FLAGS
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS} -fPIC -Wall -Werror")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS} -fPIC -Wall -Werror -fvisibility=hidden")
 SET(CMAKE_C_FLAGS_DEBUG "-O0 -g")
 
 ## SET CPP COMPILER FLAGS
-SET(CMAKE_CXX_FLAGS "${OSP_DEBUG_FLAGS} ${CMAKE_CXX_FLAGS} ${EXTRA_CFLAGS} ${OSP_COMPILER_FLAGS}")
+SET(CMAKE_CXX_FLAGS "${OSP_DEBUG_FLAGS} ${CMAKE_CXX_FLAGS} ${EXTRA_CFLAGS} ${OSP_COMPILER_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 
 IF("${ARCH}" STREQUAL "arm")
     ADD_DEFINITIONS("-DTARGET")
@@ -59,7 +59,7 @@ TARGET_LINK_LIBRARIES(${this_target} "-ldlog" )
 TARGET_LINK_LIBRARIES(${this_target} "-lbundle" )
 TARGET_LINK_LIBRARIES(${this_target} "-lglib-2.0" )
 TARGET_LINK_LIBRARIES(${this_target} "-lchromium" )
-TARGET_LINK_LIBRARIES(${this_target} "-lcapi-appfw-app-manager" )
+TARGET_LINK_LIBRARIES(${this_target} "-laul" )
 
 SET_TARGET_PROPERTIES(${this_target}
 	PROPERTIES

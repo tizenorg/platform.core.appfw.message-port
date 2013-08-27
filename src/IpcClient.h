@@ -60,14 +60,12 @@ public:
 	/**
 	 * Constructs the instance of this class.
 	 *
-	 * @return An error code
-	 * @param[in] serverName	The name of the server
-	 * @param[in] pListener	Set if the client want to handle a message from the IPC server.
+	 * @return 0 on success, otherwise a negative error value.
+	 * @param [in] serverName	The name of the server
+	 * @param [in] pListener	Set if the client want to handle a message from the IPC server.
 	 *                                 @c NULL, otherwise.
-	 * @exception E_SUCCESS		The method was successful.
-	 * @exception E_OBJ_NOT_FOUND	The IPC server was not found.
-	 * @exception E_OUT_OF_MEMORY	Insufficient memory.
-	 * @exception E_SYSTEM		A system error occurred.
+	 * @retval MESSAGEPORT_ERROR_OUT_OF_MEMORY	Insufficient memory.
+	 * @retval MESSAGEPORT_ERROR_IO_ERROR	A system error occurred.
 	 */
 	int Construct(const std::string& serverName, const IIpcClientEventListener* pListener = NULL);
 
@@ -81,28 +79,10 @@ public:
 	/**
 	 * Sends a request message to an IPC server.
 	 *
-	 * @code
-	 *
-	 *
-	 * int
-	 * CalculatorProxy::Add(int a , int b)
-	 * {
-	 *    int c = 0;
-	 *
-	 *    My_sum mySum(a, b, &c);
-	 *
-	 *    __pIpcClient->SendRequest(mySum);
-	 *
-	 *    return c;
-	 * }
-	 *
-	 * @endcode
-	 * @return An error code
-	 * @param[in] message	The message to send
-	 * @exception E_SUCCESS		The method was successful.
-	 * @exception E_INVALID_STATE	The instance is in an invalid state.
-	 * @exception E_OUT_OF_MEMORY	Insufficient memory.
-	 * @exception E_SYSTEM		A system error occurred.
+	 * @return 0 on success, otherwise a negative error value.
+	 * @param [in] message	The message to send
+	 * @retval MESSAGEPORT_ERROR_OUT_OF_MEMORY	Insufficient memory.
+	 * @retval MESSAGEPORT_ERROR_IO_ERROR	A system error occurred.
 	 *
 	 */
 	int SendRequest(const IPC::Message& message);
@@ -135,7 +115,6 @@ private:
 	pthread_mutex_t* __pMutex;
 
 	std::vector <int> __fds;
-	//Tizen::Base::Runtime::Mutex* __pFdLock;
 	std::string __name;
 	std::string __appId;
 	IIpcClientEventListener* __pListener;
