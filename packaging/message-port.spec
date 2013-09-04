@@ -2,8 +2,8 @@ Name:       message-port
 Summary:    Message Port library
 Version: 	1.2.2.0
 Release:    1
-Group:		TO_BE/FILLED_IN
-License:    Apache License, Version 2.0
+Group:		Application Framework/Libraries
+License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1001: 	message-port.manifest
 BuildRequires:  cmake
@@ -27,7 +27,7 @@ Message Port library
 
 %package devel
 Summary:  Message Port library (Development)
-Group:    TO_BE/FILLED_IN
+Group:    Application Framework/Development
 Requires: %{name} = %{version}-%{release}
 
 %description devel
@@ -50,7 +50,7 @@ rm -rf %{buildroot}
 
 %make_install
 mkdir -p %{buildroot}/usr/share/license
-install LICENSE.APLv2  %{buildroot}/usr/share/license/%{name}
+install -m 0644 LICENSE.APLv2  %{buildroot}/usr/share/license/%{name}
 
 %make_install
 
@@ -63,7 +63,7 @@ install LICENSE.APLv2  %{buildroot}/usr/share/license/%{name}
 %manifest %{name}.manifest
 %{_libdir}/libmessage-port.so.*
 %manifest message-port.manifest
-/usr/share/license/%{name}
+%license /usr/share/license/%{name}
 
 %files devel
 %manifest %{name}.manifest
