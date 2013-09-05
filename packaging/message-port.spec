@@ -1,9 +1,9 @@
 Name:       message-port
 Summary:    Message Port library
-Version: 	1.2.2.0
+Version: 	1.2.2.1
 Release:    1
-Group:		TO_BE/FILLED_IN
-License:    Apache License, Version 2.0
+Group:		Application Framework/Libraries
+License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(dlog)
@@ -26,7 +26,7 @@ Message Port library
 
 %package devel
 Summary:  Message Port library (Development)
-Group:    TO_BE/FILLED_IN
+Group:    Application Framework/Development
 Requires: %{name} = %{version}-%{release}
 
 %description devel
