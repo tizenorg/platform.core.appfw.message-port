@@ -132,7 +132,7 @@ IpcClient::MakeConnection(bool forReverse)
 	size_t socketNameLength = 0;
 	string socketName;
 
-	socketName.append("/tmp/");
+	socketName.append("/var/run/osp/");
 	socketName.append(__name);
 
 	socketNameLength = socketName.size() + 1;
