@@ -1,34 +1,12 @@
-* Wed Sep 04 2013 Maciej Wereski <m.wereski@partner.samsung.com> accepted/tizen/20130710.221523@4e83e1b
-- Fix RPMLINT errors
-- Sync with tizen_2.2
-- Fix a memory leak in Deserializer
-- Update to use the aul api instead of app-manager
-- Remove the pid info in the hello message
-- Add to check the EXPORT_API define
-- Change the default visibility to hidden
-- Apply the secure logs
-- Update document
-- resetting manifest requested domain to floor
-- Change LOGD to LOGI
-- Change version to 2.2
-- Fix a prevent issue
-- Add an error-checking in write()
-- Fix an issue on registering the same port
-- Add a retry logic
-- Prevent fix
-- Update documents
-- Merge "Change to use bundle_encode_raw" into tizen_2.1
-- Change to use bundle_encode_raw
-- Add a debug pkg
-- remove message_port_unregister
-- Remove uninitialised bytes
-- Get appid from pid
-- Apply secure logs
-- Add an OnIpcServerDisconnected in IpcClient
-- Separate the metadata
-- Fix for 64 bit compatibility.
-- Move a cert check to channel-service
-- Merge from master
-- sync with master
-- Initial empty repository
+* Wed Feb 19 2014 Amarnath Valluri <amarnath.valluri@linux.intel.com> accepted/tizen/ivi/20140127.173432@89deb20
+- Release 1.0.2-2
+- Bug Fixes: TIVI-2641
+
+* Wed Nov 27 2013 Amarnath Valluri <amarnath.valluri@linux.intel.com> accepted/tizen_ivi_stable/20131119.040253@0f4bb8e
+- Release 1.0.0-2
+- Fix-Issue TIVI-2159: Double free of bundle in message handler
+- changelog file added
+
+* Tue Nov 12 2013 Amarnath Valluri <amarnath.valluri@linux.intel.com> 572e987
+- release 1.0.0
 

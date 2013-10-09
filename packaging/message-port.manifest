@@ -1,5 +1,5 @@
 <manifest>
- <request>
+  <request>
     <domain name="_"/>
- </request>
+  </request>
 </manifest>

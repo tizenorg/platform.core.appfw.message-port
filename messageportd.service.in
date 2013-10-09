@@ -1,0 +1,13 @@
+[Unit]
+Description=Messageport Daemon
+
+[Service]
+Type=simple
+User=app
+SmackExecLabel=User
+KillSignal=SIGTERM
+Restart=always
+ExecStart=@prefix@/bin/messageportd
+
+[Install]
+WantedBy=multi-user.target
