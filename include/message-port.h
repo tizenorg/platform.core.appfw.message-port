@@ -45,6 +45,7 @@ typedef enum
 	MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND = -4, 		/**< The message port of the remote application is not found */
 	MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH = -5, 	/**< The remote application is not signed with the same certificate */
 	MESSAGEPORT_ERROR_MAX_EXCEEDED = -6, 	/**< The size of message has exceeded the maximum limit */
+	MESSAGEPORT_ERROR_RESOURCE_UNAVAILABLE = -7, 	/**< Resource temporarily unavailable */
 } messageport_error_e;
 
 

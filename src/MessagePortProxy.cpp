@@ -411,6 +411,12 @@ MessagePortProxy::SendMessageInternal(const BundleBuffer& metadata, const Bundle
 
 			return MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH;
 		}
+		else if (return_value == MESSAGEPORT_ERROR_RESOURCE_UNAVAILABLE)
+		{
+			_LOGE("The socket receiver buffer of remote port is temporarily full.");
+
+			return MESSAGEPORT_ERROR_RESOURCE_UNAVAILABLE;
+		}
 		else
 		{
 			_LOGE("Failed to check the remote messge port: %d.", return_value);
