@@ -9,12 +9,6 @@ SET(PREFIX ${CMAKE_INSTALL_PREFIX})
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/cmake_build_tmp/output)
 
 INCLUDE_DIRECTORIES (
-	/usr/include
-	/usr/include/appfw
-	/usr/include/dlog
-	/usr/include/glib-2.0
-	${LIB_INSTALL_DIR}/glib-2.0/include
-	/usr/include/chromium
 	include
 	)
 
