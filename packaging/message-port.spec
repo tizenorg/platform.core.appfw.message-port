@@ -1,11 +1,11 @@
 Name:       message-port
 Summary:    Message Port library
-Version: 	1.2.2.1
-Release:    1
-Group:		Application Framework/Libraries
+Version:    1.2.2.1
+Release:    0
+Group:      Application Framework/Libraries
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
-Source1001: 	message-port.manifest
+Source1001:     message-port.manifest
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(bundle)
@@ -23,7 +23,7 @@ Requires(postun): /sbin/ldconfig
 Provides:   libmessage-port.so.1
 
 %description
-Message Port library
+Message Port library package.
 
 %package devel
 Summary:  Message Port library (Development)
@@ -31,8 +31,7 @@ Group:    Application Framework/Development
 Requires: %{name} = %{version}-%{release}
 
 %description devel
-Message Port library (DEV)
-
+Message Port library (Development)  package.
 
 %prep
 %setup -q
@@ -41,24 +40,20 @@ cp %{SOURCE1001} .
 %build
 MAJORVER=`echo %{version} | awk 'BEGIN {FS="."}{print $1}'`
 %cmake . -DFULLVER=%{version} -DMAJORVER=${MAJORVER}
-
 # Call make instruction with smp support
-make %{?jobs:-j%jobs}
+%__make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
-
 %make_install
 
 %post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
 
-
 %files
 %manifest %{name}.manifest
 %{_libdir}/libmessage-port.so.*
-%manifest message-port.manifest
 %license LICENSE.APLv2
 
 %files devel
@@ -66,4 +61,3 @@ rm -rf %{buildroot}
 %{_includedir}/appfw/*.h
 %{_libdir}/pkgconfig/*.pc
 %{_libdir}/libmessage-port.so
-
