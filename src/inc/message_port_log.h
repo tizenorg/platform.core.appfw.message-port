@@ -15,10 +15,19 @@
 // limitations under the License.
 //
 
-/**
- * @file	message-port-messages.cpp
- * @brief	This is the implementation file for the MessagePortMessages
- */
 
-#define IPC_MESSAGE_IMPL
-#include "message-port-messages.h"
+#ifndef __TIZEN_APPFW_MESSAGE_PORT_LOG_H__
+#define __TIZEN_APPFW_MESSAGE_PORT_LOG_H__
+
+#include <dlog.h>
+
+#undef LOG_TAG
+#define LOG_TAG "MESSAGE_PORT"
+
+#define _LOGE(fmt, arg...) LOGE(fmt, ##arg)
+#define _LOGI(fmt, arg...) LOGI(fmt, ##arg)
+
+#define _SECURE_LOGE(fmt, arg...) SECURE_LOGE(fmt, ##arg)
+#define _SECURE_LOGI(fmt, arg...) SECURE_LOGI(fmt, ##arg)
+
+#endif /* __TIZEN_APPFW_MESSAGE_PORT_LOG_H__ */
