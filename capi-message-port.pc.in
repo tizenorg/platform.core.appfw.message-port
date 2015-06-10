@@ -6,7 +6,7 @@ exec_prefix=/usr
 libdir=@LIB_INSTALL_DIR@
 includedir=@INCLUDE_INSTALL_DIR@/appfw
 
-Name: @PC_NAME@
+Name: capi-message-port
 Description: @PACKAGE_DESCRIPTION@
 Version: @VERSION@
 Requires: capi-base-common
