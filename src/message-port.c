@@ -27,6 +27,7 @@
 #include <aul/aul.h>
 #include <openssl/md5.h>
 #include <bundle.h>
+#include <bundle_internal.h>
 #include <pkgmgr-info.h>
 
 #include "message-port.h"
@@ -37,6 +38,7 @@
 #define MESSAGEPORT_BUS_NAME_PREFIX "org.tizen.messageport._"
 #define MESSAGEPORT_OBJECT_PATH "/org/tizen/messageport"
 #define MESSAGEPORT_INTERFACE "org.tizen.messageport"
+#define MESSAGEPORT_INTERFACE_PREFIX "org.tizen.messageport._"
 
 
 
@@ -102,17 +104,18 @@ typedef struct port_list_info {
 	bool exist;
 } port_list_info_s;
 
-static char *__get_encoded_bus_name(const char *bus_name, const char *prefix, int len)
+static char *__get_encoded_name(const char *name, const char *prefix, int prefix_len,
+				const char *postfix, int postfix_len)
 {
 	unsigned char c[MD5_DIGEST_LENGTH] = {0};
 	char *md5_interface = NULL;
 	char *temp;
 	int index = 0;
 	MD5_CTX mdContext;
-	int interface_len = len + (MD5_DIGEST_LENGTH * 2) + 1;
+	int interface_len = prefix_len + postfix_len + (MD5_DIGEST_LENGTH * 2) + 2;
 
 	MD5_Init(&mdContext);
-	MD5_Update(&mdContext, bus_name, strlen(bus_name));
+	MD5_Update(&mdContext, name, strlen(name));
 	MD5_Final(c, &mdContext);
 
 	md5_interface = (char *)calloc(interface_len , sizeof(char));
@@ -123,33 +126,48 @@ static char *__get_encoded_bus_name(const char *bus_name, const char *prefix, in
 
 	snprintf(md5_interface, interface_len, "%s", prefix);
 	temp = md5_interface;
-	temp += len;
+	temp += prefix_len;
 
 	for (index = 0; index < MD5_DIGEST_LENGTH; index++) {
 		snprintf(temp, 3, "%02x", c[index]);
 		temp += 2;
 	}
 
+	if (postfix && postfix_len > 0) {
+		snprintf(temp, interface_len - (temp - md5_interface), "_%s", postfix);
+	}
+
 	return md5_interface;
+}
+
+static char *__get_interface_name(const char *port_name, bool is_trusted)
+{
+	char *interface_name = NULL;
+
+	interface_name = __get_encoded_name(port_name,
+					MESSAGEPORT_INTERFACE_PREFIX,
+					strlen(MESSAGEPORT_INTERFACE_PREFIX),
+					is_trusted ? "1" : "0", 1);
+
+	if (!interface_name) {
+		_LOGE("failed to get interface name ");
+	}
+
+	return interface_name;
 }
 
 static char *__get_bus_name(const char *remote_app_id)
 {
 	char *bus_name = NULL;
 
-	bus_name = __get_encoded_bus_name(remote_app_id, MESSAGEPORT_BUS_NAME_PREFIX, strlen(MESSAGEPORT_BUS_NAME_PREFIX));
+	bus_name = __get_encoded_name(remote_app_id,
+					MESSAGEPORT_BUS_NAME_PREFIX,
+					strlen(MESSAGEPORT_BUS_NAME_PREFIX),
+					NULL, 0);
 	if (!bus_name) {
 		_LOGE("fail to get bus name");
 	}
 	return bus_name;
-}
-
-int __get_next_id(void)
-{
-	static int count = 0;
-
-	++count;
-	return count;
 }
 
 static int __remote_port_compare_cb(gconstpointer a, gconstpointer b)
@@ -211,8 +229,7 @@ static int __check_certificate(const char *local_appid, const char *remote_appid
 	_LOGI("CheckCertificate");
 
 	pkgmgrinfo_cert_compare_result_type_e res;
-	int ret = pkgmgrinfo_pkginfo_compare_usr_app_cert_info(local_appid,
-			remote_appid, getuid(), &res);
+	int ret = pkgmgrinfo_pkginfo_compare_usr_app_cert_info(local_appid, remote_appid, getuid(), &res);
 	if (ret < 0) {
 		_LOGE(":CheckCertificate() Failed");
 		return MESSAGEPORT_ERROR_IO_ERROR;
@@ -430,7 +447,7 @@ static int __get_sender_pid(GDBusConnection *conn, const char *sender_name)
 
 	g_dbus_message_set_body (msg, g_variant_new ("(s)", sender_name));
 	reply = g_dbus_connection_send_message_with_reply_sync(conn, msg,
-							G_DBUS_SEND_MESSAGE_FLAGS_NONE, 500, NULL, NULL, &err);
+							G_DBUS_SEND_MESSAGE_FLAGS_NONE, -1, NULL, NULL, &err);
 
 	if (!reply) {
 		if (err != NULL) {
@@ -520,6 +537,7 @@ static bool send_message(GVariant *parameters)
 		}
 	}
 
+	__set_checked_app_list(mi, local_appid);
 	data = bundle_decode(raw, len);
 	bundle_free_encoded_rawdata(&raw);
 
@@ -575,6 +593,7 @@ static int unregister_port(GVariant *parameters)
 
 	return ret;
 }
+
 static int __check_remote_port(const char *remote_app_id, const char *remote_port, bool is_trusted, bool *exist)
 {
 	_LOGI("Check a remote port : [%s:%s]", remote_app_id, remote_port);
@@ -589,6 +608,10 @@ static int __check_remote_port(const char *remote_app_id, const char *remote_por
 	port_list_info_s *port_info = NULL;
 	int local_reg_id = 0;
 	message_port_local_port_info_s *mi = NULL;
+	GDBusNodeInfo *node_info;
+	GDBusInterfaceInfo *interface_info;
+	const gchar *xml_data;
+	char *interface_name = NULL;
 
 	_LOGI("remote_app_id, app_id :[%s : %s] ", remote_app_id, __app_id);
 
@@ -597,6 +620,7 @@ static int __check_remote_port(const char *remote_app_id, const char *remote_por
 		return ret_val;
 	}
 
+	// self check
 	if (strcmp(remote_app_id, __app_id) == 0) {
 
 		_LOGI("__is_local_port_registed ");
@@ -609,114 +633,81 @@ static int __check_remote_port(const char *remote_app_id, const char *remote_por
 		return MESSAGEPORT_ERROR_NONE;
 	}
 
-	*exist = false;
 	port_info->exist = false;
 	bus_name = remote_app_info->encoded_bus_name;
 
 	msg = g_dbus_message_new_method_call(bus_name, MESSAGEPORT_OBJECT_PATH,
-			MESSAGEPORT_INTERFACE, "check_remote_port");
+			"org.freedesktop.DBus.Introspectable",
+			"Introspect");
 	_LOGI("bus_name, remote app id:[%s : %s] ", bus_name, remote_app_id);
 	if (!msg) {
 		_LOGI("Can't allocate new method call");
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 	}
 
-	g_dbus_message_set_body(msg, g_variant_new("(sbss)", __app_id, is_trusted, remote_app_id, remote_port));
-	reply = g_dbus_connection_send_message_with_reply_sync(
-			__gdbus_conn,
-			msg,
-			G_DBUS_SEND_MESSAGE_FLAGS_NONE,
-			500,
-			NULL,
-			NULL,
-			&err);
+	g_dbus_message_set_body(msg, NULL);
+	reply = g_dbus_connection_send_message_with_reply_sync(__gdbus_conn, msg,
+			G_DBUS_SEND_MESSAGE_FLAGS_NONE, -1, NULL, NULL, &err);
 
 	if (err || (reply == NULL)) {
 		if (err) {
 			_LOGE("No reply. error = %s", err->message);
 			g_error_free(err);
 		}
-		ret_val = MESSAGEPORT_ERROR_IO_ERROR;
+		ret_val = MESSAGEPORT_ERROR_RESOURCE_UNAVAILABLE;
 	} else {
-		if (g_dbus_message_to_gerror(reply, &err)) {
-			_LOGE("error = %s", err->message);
-			g_error_free(err);
-			ret_val = MESSAGEPORT_ERROR_NONE;
+		body = g_dbus_message_get_body(reply);
+		g_variant_get(body, "(&s)", &xml_data);
+
+		node_info = g_dbus_node_info_new_for_xml(xml_data, &err);
+		if (err) {
+			LOGE("g_dbus_node_info_new_for_xml [%s]", err->message);
 			*exist = false;
-		} else {
-			body = g_dbus_message_get_body(reply);
-			g_variant_get(body, "(i)", &ret_val);
-
-			if (ret_val == MESSAGEPORT_ERROR_NONE) {
-				*exist = true;
-				port_info->exist = true;
-			} else if (ret_val == MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH) {
-				_SECURE_LOGI("The remote application (%s) is not signed with the same certificate", remote_app_id);
-			}
+			ret_val = MESSAGEPORT_ERROR_NONE;
+			goto out;
 		}
-	}
 
+		interface_name = __get_interface_name(remote_port, is_trusted);
+		if (interface_name == NULL) {
+			ret_val = MESSAGEPORT_ERROR_OUT_OF_MEMORY;
+			goto out;
+		}
+
+		LOGI("Lookup interface : %s", interface_name);
+		interface_info = g_dbus_node_info_lookup_interface(node_info, interface_name);
+		if (interface_info == NULL) {
+			LOGE("g_dbus_node_info_lookup_interface NULL %s", interface_name);
+			*exist = false;
+			ret_val = MESSAGEPORT_ERROR_NONE;
+		}
+		else {
+
+			if (is_trusted) {
+				if (remote_app_info->certificate_info != CERTIFICATE_MATCH) {
+					if (!__is_preloaded(__app_id, remote_app_id)) {
+						if (__check_certificate(__app_id, remote_app_id) != MESSAGEPORT_ERROR_NONE) {
+							ret_val = MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH;
+							goto out;
+						}
+					}
+					remote_app_info->certificate_info = CERTIFICATE_MATCH;
+				}
+			}
+			port_info->exist = true;
+			*exist = true;
+			ret_val = MESSAGEPORT_ERROR_NONE;
+		}
+
+	}
+out:
 	if (msg)
 		g_object_unref(msg);
 	if (reply)
 		g_object_unref(reply);
+	if (interface_name)
+		free(interface_name);
 
 	return ret_val;
-}
-
-static int check_remote_port(GVariant *parameters)
-{
-	int ret = MESSAGEPORT_ERROR_NONE;
-	char *remote_appid = NULL;
-	char *remote_port = NULL;
-	char *local_appid = NULL;
-	bool is_trusted;
-	int local_reg_id = 0;
-	message_port_local_port_info_s *mi = NULL;
-
-	g_variant_get(parameters, "(sbss)", &local_appid, &is_trusted, &remote_appid, &remote_port);
-
-	if (!local_appid) {
-		_LOGE("Invalid argument : local_appid");
-		ret = MESSAGEPORT_ERROR_INVALID_PARAMETER;
-		goto out;
-	}
-	if (!remote_appid) {
-		_LOGE("Invalid argument : remote_appid");
-		ret = MESSAGEPORT_ERROR_INVALID_PARAMETER;
-		goto out;
-	}
-	if (!remote_port) {
-		_LOGE("Invalid argument : remote_port");
-		ret = MESSAGEPORT_ERROR_INVALID_PARAMETER;
-		goto out;
-	}
-	if (strcmp(remote_appid, __app_id) != 0) {
-		_LOGE("Invalid argument : remote_appid (%s)", remote_appid);
-		ret =  MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
-		goto out;
-	}
-	if (!__is_local_port_registed(remote_port, is_trusted, &local_reg_id, &mi)) {
-		_LOGE("Invalid argument : remote_port:(%s) trusted(%d)", remote_port, is_trusted);
-		ret = MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
-		goto out;
-	}
-	if (is_trusted) {
-		// Check the preloaded
-		if (!__is_preloaded(local_appid, remote_appid)) {
-			// Check the certificate
-			ret = __check_certificate(local_appid, remote_appid);
-			if (ret == MESSAGEPORT_ERROR_NONE) {
-				g_hash_table_insert(__trusted_app_list_hash, local_appid, "TRUE");
-			}
-		}
-	}
-
-	__set_checked_app_list(mi, local_appid);
-
-out :
-
-	return ret;
 }
 
 static bool __check_sender_validation(GVariant *parameters, const char *sender, GDBusConnection *conn)
@@ -755,15 +746,12 @@ static void __dbus_method_call_handler(GDBusConnection *conn,
 		if (!__check_sender_validation(parameters, sender, conn))
 			return;
 	}
+
 	if (g_strcmp0(method_name, "send_message") == 0) {
-		ret =send_message(parameters);
-	} else if (g_strcmp0(method_name, "check_remote_port") == 0) {
-		ret = check_remote_port(parameters);
-			g_dbus_method_invocation_return_value(invocation,
-				g_variant_new("(i)", ret));
+		ret = send_message(parameters);
 	} else if (g_strcmp0(method_name, "unregister_port") == 0) {
 		ret = unregister_port(parameters);
-			g_dbus_method_invocation_return_value(invocation,
+		g_dbus_method_invocation_return_value(invocation,
 				g_variant_new("(i)", ret));
 	}
 
@@ -778,47 +766,14 @@ static const GDBusInterfaceVTable interface_vtable = {
 
 static int __dbus_init(void)
 {
-	static gchar introspection[] =
-		"<node>"
-		"  <interface name='"
-		MESSAGEPORT_INTERFACE
-		"'>"
-		"	 <method name='send_message'>"
-		"	   <arg type='s' name='local_appid' direction='in'/>"
-		"	   <arg type='s' name='local_port' direction='in'/>"
-		"	   <arg type='b' name='local_trusted' direction='in'/>"
-		"	   <arg type='b' name='bi_dir' direction='in'/>"
-		"	   <arg type='s' name='remote_appid' direction='in'/>"
-		"	   <arg type='s' name='remote_port' direction='in'/>"
-		"	   <arg type='b' name='remote_trusted' direction='in'/>"
-		"	   <arg type='u' name='data_len' direction='in'/>"
-		"	   <arg type='s' name='data' direction='in'/>"
-		"	 </method>"
-		"	 <method name='check_remote_port'>"
-		"	   <arg type='s' name='local_appid' direction='in'/>"
-		"	   <arg type='b' name='is_trusted' direction='in'/>"
-		"	   <arg type='s' name='remote_appid' direction='in'/>"
-		"	   <arg type='s' name='remote_port' direction='in'/>"
-		"	   <arg type='i' name='response' direction='out'/>"
-		"	 </method>"
-		"	 <method name='unregister_port'>"
-		"	   <arg type='s' name='local_appid' direction='in'/>"
-		"	   <arg type='b' name='is_trusted' direction='in'/>"
-		"	   <arg type='s' name='remote_port' direction='in'/>"
-		"	   <arg type='i' name='response' direction='out'/>"
-		"	 </method>"
-		"  </interface>"
-		"</node>";
-
 	int owner_id = 0;
-	int registration_id = 0;
 	char *bus_name = NULL;
 	bool ret = false;
 	GError *error = NULL;
-	GDBusNodeInfo *introspection_data = NULL;
 
 	bus_name = __get_bus_name(__app_id);
 	retvm_if(!bus_name, false, "bus_name is NULL");
+	LOGI("bus name : %s", bus_name);
 
 	__gdbus_conn = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
 	if (__gdbus_conn == NULL) {
@@ -837,7 +792,69 @@ static int __dbus_init(void)
 		goto out;
 	}
 
-	introspection_data = g_dbus_node_info_new_for_xml(introspection, NULL);
+	ret = true;
+
+out:
+	FREE_AND_NULL(bus_name);
+	if (!__gdbus_conn)
+		g_object_unref(__gdbus_conn);
+
+	return ret;
+
+}
+
+
+int __register_dbus_interface(const char *port_name, bool is_trusted) {
+
+	GDBusNodeInfo *introspection_data = NULL;
+	int registration_id = 0;
+
+	static gchar introspection_prefix[] =
+		"<node>"
+		"  <interface name='";
+
+	static gchar introspection_postfix[] =
+		"'>"
+		"	 <method name='send_message'>"
+		"	   <arg type='s' name='local_appid' direction='in'/>"
+		"	   <arg type='s' name='local_port' direction='in'/>"
+		"	   <arg type='b' name='local_trusted' direction='in'/>"
+		"	   <arg type='b' name='bi_dir' direction='in'/>"
+		"	   <arg type='s' name='remote_appid' direction='in'/>"
+		"	   <arg type='s' name='remote_port' direction='in'/>"
+		"	   <arg type='b' name='remote_trusted' direction='in'/>"
+		"	   <arg type='u' name='data_len' direction='in'/>"
+		"	   <arg type='s' name='data' direction='in'/>"
+		"	 </method>"
+		"	 <method name='unregister_port'>"
+		"	   <arg type='s' name='local_appid' direction='in'/>"
+		"	   <arg type='b' name='is_trusted' direction='in'/>"
+		"	   <arg type='s' name='remote_port' direction='in'/>"
+		"	   <arg type='i' name='response' direction='out'/>"
+		"	 </method>"
+		"  </interface>"
+		"</node>";
+
+	char *interface_name = NULL;
+	char *introspection_xml = NULL;
+	int introspection_xml_len = 0;
+
+	interface_name = __get_interface_name(port_name, is_trusted);
+	if (interface_name == NULL) {
+		LOGE("Fail to get interface name %d", introspection_xml_len);
+		goto out;
+	}
+
+	introspection_xml_len = strlen(introspection_prefix) + strlen(interface_name) +
+		strlen(introspection_postfix) + 1;
+
+	LOGI("interface_name %s", interface_name);
+
+	introspection_xml = (char *)calloc(introspection_xml_len, sizeof(char));
+
+	snprintf(introspection_xml, introspection_xml_len, "%s%s%s", introspection_prefix, interface_name, introspection_postfix);
+
+	introspection_data = g_dbus_node_info_new_for_xml(introspection_xml, NULL);
 	if (!introspection_data) {
 		_LOGE("g_dbus_node_info_new_for_xml() is failed.");
 		goto out;
@@ -853,18 +870,19 @@ static int __dbus_init(void)
 		_LOGE("Failed to g_dbus_connection_register_object");
 		goto out;
 	}
-	ret = true;
 
 out:
-	FREE_AND_NULL(bus_name);
-	if (!__gdbus_conn)
-		g_object_unref(__gdbus_conn);
 	if (introspection_data)
 		g_dbus_node_info_unref(introspection_data);
+	if (interface_name)
+		free(interface_name);
+	if (introspection_xml)
+		free(introspection_xml);
 
-	return ret;
 
+	return registration_id;
 }
+
 
 void __list_free_port_list(gpointer data)
 {
@@ -971,7 +989,11 @@ static int __register_message_port(const char *local_port, bool is_trusted, mess
 		return local_id;
 	}
 
-	local_id = __get_next_id();
+	local_id = __register_dbus_interface(local_port, is_trusted);
+	if (local_id < 1) {
+		_LOGE("register_dbus_interface fail !!");
+		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
+	}
 
 	if (!__message_port_register_port(local_id, local_port, is_trusted, callback)) {
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
@@ -987,6 +1009,7 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 	int len = 0;
 	bundle_raw *raw = NULL;
 	char *bus_name = NULL;
+	char *interface_name = NULL;
 
 	message_port_remote_app_info_s *remote_app_info = NULL;
 	port_list_info_s *port_info = NULL;
@@ -997,18 +1020,6 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 	ret = __get_remote_port_info(remote_appid, remote_port, trusted_message, &remote_app_info, &port_info);
 	if (ret != MESSAGEPORT_ERROR_NONE) {
 		return ret;
-	}
-
-	if (trusted_message) {
-		if (remote_app_info->certificate_info != CERTIFICATE_MATCH) {
-			if (!__is_preloaded(__app_id, remote_appid)) {
-				if (__check_certificate(__app_id, remote_appid) != MESSAGEPORT_ERROR_NONE) {
-					ret = MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH;
-					goto out;
-				}
-			}
-			remote_app_info->certificate_info = CERTIFICATE_MATCH;
-		}
 	}
 
 	if (port_info->exist == false) {
@@ -1038,7 +1049,14 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 	body = g_variant_new("(ssbbssbus)", __app_id, (local_port) ? local_port : "", local_trusted, bi_dir,
 			  remote_appid, remote_port, trusted_message, len, raw);
 
-	msg = g_dbus_message_new_method_call(bus_name, MESSAGEPORT_OBJECT_PATH, MESSAGEPORT_INTERFACE, "send_message");
+	interface_name = __get_interface_name(remote_port, trusted_message);
+	if (!interface_name) {
+		_LOGE("Can't get interface_name");
+		ret = MESSAGEPORT_ERROR_OUT_OF_MEMORY;
+		goto out;
+	}
+
+	msg = g_dbus_message_new_method_call(bus_name, MESSAGEPORT_OBJECT_PATH, interface_name, "send_message");
 	if (!msg) {
 		_LOGE("Can't allocate new method call");
 		ret = MESSAGEPORT_ERROR_OUT_OF_MEMORY;
@@ -1060,6 +1078,9 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 		g_object_unref(msg);
 	if (raw)
 		bundle_free_encoded_rawdata(&raw);
+	if (interface_name)
+		free(interface_name);
+
 	return ret;
 }
 
@@ -1081,7 +1102,6 @@ int messageport_unregister_local_port(int local_port_id, bool trusted_port)
 
 	GDBusMessage *msg = NULL;
 	GDBusMessage *reply = NULL;
-	GError *err = NULL;
 	GVariant *body;
 	char *bus_name = NULL;
 	GList *checked_app_list = NULL;
@@ -1103,12 +1123,22 @@ int messageport_unregister_local_port(int local_port_id, bool trusted_port)
 	for (checked_app = checked_app_list; checked_app != NULL;
 			checked_app = checked_app->next) {
 
+		GError *err = NULL;
 		char *checked_app_id = (char *)checked_app->data;
+		char *interface_name = __get_interface_name(mi->port_name, mi->is_trusted);
+		if (interface_name == NULL) {
+			_LOGI("Can't get interface_name");
+			return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
+		}
 
 		_LOGI("unregister appid: %s", checked_app_id);
 		bus_name = __get_bus_name(checked_app_id);
 		msg = g_dbus_message_new_method_call(bus_name, MESSAGEPORT_OBJECT_PATH,
-				MESSAGEPORT_INTERFACE, "unregister_port");
+				interface_name, "unregister_port");
+
+		if (interface_name)
+			free(interface_name);
+
 		if (!msg) {
 			_LOGI("Can't allocate new method call");
 			return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
@@ -1120,7 +1150,7 @@ int messageport_unregister_local_port(int local_port_id, bool trusted_port)
 				__gdbus_conn,
 				msg,
 				G_DBUS_SEND_MESSAGE_FLAGS_NONE,
-				500,
+				-1,
 				NULL,
 				NULL,
 				&err);
@@ -1158,6 +1188,8 @@ int messageport_unregister_local_port(int local_port_id, bool trusted_port)
 	g_hash_table_remove(__checked_app_list_hash, mi->port_name);
 	g_hash_table_remove(__local_port_info, GINT_TO_POINTER(local_port_id));
 
+	g_dbus_connection_unregister_object(__gdbus_conn, local_port_id);
+
 	if (msg)
 		g_object_unref(msg);
 	if (reply)
@@ -1194,7 +1226,13 @@ int messageport_check_remote_port(const char *remote_app_id, const char *remote_
 			return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
-	return __check_remote_port(remote_app_id, remote_port, false, exist);
+	int ret = __check_remote_port(remote_app_id, remote_port, false, exist);
+	if (ret == MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND) {
+		*exist = false;
+		ret = MESSAGEPORT_ERROR_NONE;
+	}
+
+	return ret;
 }
 
 int messageport_check_trusted_remote_port(const char *remote_app_id, const char *remote_port, bool *exist)
@@ -1204,7 +1242,13 @@ int messageport_check_trusted_remote_port(const char *remote_app_id, const char 
 			return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
-	return __check_remote_port(remote_app_id, remote_port, true, exist);
+	int ret = __check_remote_port(remote_app_id, remote_port, true, exist);
+	if (ret == MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND) {
+		*exist = false;
+		ret = MESSAGEPORT_ERROR_NONE;
+	}
+
+	return ret;
 }
 
 int messageport_send_message(const char *remote_app_id, const char *remote_port, bundle *message)
