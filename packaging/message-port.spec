@@ -47,6 +47,7 @@ rm -rf %{buildroot}
 
 %make_install
 
+
 %post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
@@ -54,6 +55,7 @@ rm -rf %{buildroot}
 %files
 %manifest %{name}.manifest
 %attr(0644,root,root) %{_libdir}/lib%{name}.so.*
+%attr(0644,root,root) %{_libdir}/libcapi-message-port.so
 %license LICENSE.APLv2
 
 %files devel

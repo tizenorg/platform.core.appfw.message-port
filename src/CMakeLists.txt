@@ -50,6 +50,11 @@ SET(PC_NAME ${this_target})
 SET(PACKAGE_DESCRIPTION "Message Port internal library")
 SET(VERSION ${FULLVER})
 SET(PC_REQUIRED ${${this_target}_requires})
+
+ADD_CUSTOM_COMMAND(
+	    TARGET ${this_target} POST_BUILD
+	    COMMAND ln -s ${LIBRARY_OUTPUT_PATH}/libmessage-port.so.${MAJORVER} ${LIBRARY_OUTPUT_PATH}/libcapi-message-port.so)
+
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/${this_target}.pc.in ${CMAKE_SOURCE_DIR}/${this_target}.pc @ONLY)
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/${this_target}.pc DESTINATION ${LIB_INSTALL_DIR}/pkgconfig)
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/capi-${this_target}.pc.in ${CMAKE_SOURCE_DIR}/capi-${this_target}.pc @ONLY)
