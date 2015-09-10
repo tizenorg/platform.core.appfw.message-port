@@ -55,7 +55,7 @@ rm -rf %{buildroot}
 %files
 %manifest %{name}.manifest
 %attr(0644,root,root) %{_libdir}/lib%{name}.so.*
-%attr(0644,root,root) %{_libdir}/libcapi-message-port.so
+%attr(0644,root,root) %{_libdir}/libcapi-message-port.so.*
 %license LICENSE.APLv2
 
 %files devel
