@@ -45,20 +45,15 @@ static void do_callback(message_port_message_cb callback, int local_port_id, con
 	}
 }
 
-static void message_dispatcher(int local_port_id, const char *remote_app_id, const char *remote_port, bool trusted_remote_port, bundle *message)
+static void message_dispatcher(int local_port_id, const char *remote_app_id, const char *remote_port, bool trusted_remote_port, bundle *message, void *user_data)
 {
-	_SECURE_LOGI("A message has been received to specific local port id (%d) from%s remote port (%s):(%s).",
-			local_port_id, trusted_remote_port ? " trusted" : "", remote_app_id, remote_port);
-
 	message_port_callback_item *item =
 		(message_port_callback_item *)g_hash_table_lookup(__listeners, GINT_TO_POINTER(local_port_id));
 	do_callback(item->callback, local_port_id, remote_app_id, remote_port, trusted_remote_port, message, item->user_data);
 }
 
-static void trusted_message_dispatcher(int trusted_local_port_id, const char *remote_app_id, const char *remote_port, bool trusted_remote_port, bundle *message)
+static void trusted_message_dispatcher(int trusted_local_port_id, const char *remote_app_id, const char *remote_port, bool trusted_remote_port, bundle *message, void *user_data)
 {
-	_SECURE_LOGI("A message has been received to specific trusted local port id (%d) from%s remote port (%s):(%s).",
-			trusted_local_port_id, trusted_remote_port ? " trusted" : "", remote_app_id, remote_port);
 	message_port_callback_item *item =
 		(message_port_callback_item *)g_hash_table_lookup(__trusted_listeners, GINT_TO_POINTER(trusted_local_port_id));
 	do_callback(item->callback, trusted_local_port_id, remote_app_id, remote_port, trusted_remote_port, message, item->user_data);
@@ -202,7 +197,6 @@ int message_port_send_message(const char *remote_app_id, const char *remote_port
 		_LOGE("[MESSAGE_PORT_ERROR_INVALID_PARAMETER] NULL value is not allowed.");
 		return MESSAGE_PORT_ERROR_INVALID_PARAMETER;
 	}
-	_SECURE_LOGI("Send a message to the remote port (%s):(%s).", remote_app_id, remote_port);
 	return convert_to_tizen_error((messageport_error_e)messageport_send_message(remote_app_id, remote_port, message));
 }
 
@@ -213,7 +207,6 @@ int message_port_send_trusted_message(const char *remote_app_id, const char *rem
 		_LOGE("[MESSAGE_PORT_ERROR_INVALID_PARAMETER] NULL value is not allowed.");
 		return MESSAGE_PORT_ERROR_INVALID_PARAMETER;
 	}
-	_SECURE_LOGI("Send a trusted message to the remote port (%s):(%s).", remote_app_id, remote_port);
 	return convert_to_tizen_error((messageport_error_e)messageport_send_trusted_message(remote_app_id, remote_port, message));
 }
 
