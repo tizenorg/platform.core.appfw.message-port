@@ -45,7 +45,7 @@ extern "C" {
  * @remarks @a data must be released with bundle_free() by you
  * @remark @a remote_app_id and @a remote_port will be set if the remote application sends a bidirectional message, otherwise they are NULL.
  */
-typedef void (*messageport_message_cb)(int id, const char* remote_app_id, const char* remote_port, bool trusted_message, bundle* data);
+typedef void (*messageport_message_cb)(int id, const char* remote_app_id, const char* remote_port, bool trusted_message, bundle* data, void* user_data);
 
 /**
  * @brief Unregisters the local message port. @n

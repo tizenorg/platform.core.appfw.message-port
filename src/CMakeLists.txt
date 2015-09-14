@@ -11,7 +11,7 @@ SET(${this_target}_SOURCE_FILES
 	message_port.c
 	)
 
-SET(${this_target}_requires "dlog bundle glib-2.0 gio-2.0 aul openssl capi-base-common pkgmgr-info")
+SET(${this_target}_requires "dlog bundle glib-2.0 gio-2.0 aul openssl capi-base-common pkgmgr-info gio-unix-2.0")
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(${this_target} REQUIRED ${${this_target}_requires})
@@ -50,6 +50,11 @@ SET(PC_NAME ${this_target})
 SET(PACKAGE_DESCRIPTION "Message Port internal library")
 SET(VERSION ${FULLVER})
 SET(PC_REQUIRED ${${this_target}_requires})
+
+ADD_CUSTOM_COMMAND(
+	    TARGET ${this_target} POST_BUILD
+	    COMMAND ln -s ./libmessage-port.so.${MAJORVER} ${LIBRARY_OUTPUT_PATH}/libcapi-message-port.so.${MAJORVER})
+
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/${this_target}.pc.in ${CMAKE_SOURCE_DIR}/${this_target}.pc @ONLY)
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/${this_target}.pc DESTINATION ${LIB_INSTALL_DIR}/pkgconfig)
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/capi-${this_target}.pc.in ${CMAKE_SOURCE_DIR}/capi-${this_target}.pc @ONLY)
