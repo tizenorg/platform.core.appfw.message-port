@@ -11,7 +11,7 @@ SET(${this_target}_SOURCE_FILES
 	message_port.c
 	)
 
-SET(${this_target}_requires "dlog bundle glib-2.0 gio-2.0 aul openssl capi-base-common pkgmgr-info")
+SET(${this_target}_requires "dlog bundle glib-2.0 gio-2.0 aul openssl capi-base-common pkgmgr-info gio-unix-2.0")
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(${this_target} REQUIRED ${${this_target}_requires})
