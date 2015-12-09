@@ -1,19 +1,20 @@
 
-// Message Port
-// Copyright (c) 2015 Samsung Electronics Co., Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the License);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+/*
+ Message Port
+ Copyright (c) 2015 Samsung Electronics Co., Ltd.
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+*/
 
 /**
  * @file	message-port.cpp
@@ -170,9 +171,8 @@ static char *__get_encoded_name(const char *remote_app_id, const char *port_name
 		temp += 2;
 	}
 
-	if (postfix && postfix_len > 0) {
+	if (postfix && postfix_len > 0)
 		snprintf(temp, encoded_bus_name_len - (temp - md5_interface), "%s", postfix);
-	}
 	if (bus_name)
 		free(bus_name);
 
@@ -186,9 +186,8 @@ static int __remote_port_compare_cb(gconstpointer a, gconstpointer b)
 	port_list_info_s *key1 = (port_list_info_s *)a;
 	port_list_info_s *key2 = (port_list_info_s *)b;
 
-	if (key1->is_trusted == key2->is_trusted) {
+	if (key1->is_trusted == key2->is_trusted)
 		return strcmp(key1->port_name, key2->port_name);
-	}
 
 	return 1;
 }
@@ -253,7 +252,7 @@ static int __check_certificate(const char *local_appid, const char *remote_appid
 	return MESSAGEPORT_ERROR_NONE;
 }
 
-static void on_name_appeared (GDBusConnection *connection,
+static void on_name_appeared(GDBusConnection *connection,
 		const gchar     *name,
 		const gchar     *name_owner,
 		gpointer         user_data)
@@ -261,7 +260,7 @@ static void on_name_appeared (GDBusConnection *connection,
 	_LOGI("name appeared : %s %s", __app_id, name);
 }
 
-static void on_name_vanished (GDBusConnection *connection,
+static void on_name_vanished(GDBusConnection *connection,
 		const gchar     *name,
 		gpointer         user_data)
 {
@@ -275,9 +274,8 @@ static int __get_local_port_info(int id, message_port_local_port_info_s **info)
 {
 	message_port_local_port_info_s *mi = (message_port_local_port_info_s *)g_hash_table_lookup(__local_port_info, GINT_TO_POINTER(id));
 
-	if (mi == NULL) {
+	if (mi == NULL)
 		return MESSAGEPORT_ERROR_INVALID_PARAMETER;
-	}
 	*info = mi;
 
 	return MESSAGEPORT_ERROR_NONE;
@@ -308,7 +306,7 @@ static port_list_info_s *__set_remote_port_info(const char *remote_app_id, const
 	port_info->sock_pair[0] = 0;
 	port_info->sock_pair[1] = 0;
 
-	out:
+out:
 	if (ret_val != MESSAGEPORT_ERROR_NONE) {
 		if (port_info) {
 			FREE_AND_NULL(port_info->port_name);
@@ -346,7 +344,7 @@ static message_port_remote_app_info_s *__set_remote_app_info(const char *remote_
 
 	remote_app_info->port_list = g_list_append(remote_app_info->port_list, port_info);
 
-	out:
+out:
 	if (ret_val != MESSAGEPORT_ERROR_NONE) {
 		if (remote_app_info) {
 			FREE_AND_NULL(remote_app_info->remote_app_id);
@@ -395,9 +393,8 @@ static int __get_remote_port_info(const char *remote_app_id, const char *remote_
 		remote_app_info->port_list = g_list_append(remote_app_info->port_list, tmp);
 		*pli = tmp;
 		g_hash_table_insert(__remote_port_info, (*pli)->encoded_bus_name, *pli);
-	} else {
+	} else
 		*pli = (port_list_info_s *)cb_list->data;
-	}
 
 out:
 
@@ -416,9 +413,8 @@ static bool __is_local_port_registed(const char *local_port, bool trusted, int *
 
 		if ((mi->is_trusted == trusted) && strcmp(mi->port_name, local_port) == 0) {
 			*local_id = mi->local_id;
-			if (lpi != NULL) {
+			if (lpi != NULL)
 				*lpi = mi;
-			}
 			return true;
 		}
 	}
@@ -440,7 +436,7 @@ static int __get_sender_pid(GDBusConnection *conn, const char *sender_name)
 		goto out;
 	}
 
-	g_dbus_message_set_body (msg, g_variant_new ("(s)", sender_name));
+	g_dbus_message_set_body(msg, g_variant_new("(s)", sender_name));
 	reply = g_dbus_connection_send_message_with_reply_sync(conn, msg,
 							G_DBUS_SEND_MESSAGE_FLAGS_NONE, -1, NULL, NULL, &err);
 
@@ -470,8 +466,8 @@ message_port_pkt_s *__message_port_recv_raw(int fd)
 	int ret;
 	message_port_pkt_s *pkt = NULL;
 
-	pkt = (message_port_pkt_s *) calloc(sizeof(char) * MAX_MESSAGE_SIZE, 1);
-	if(pkt == NULL) {
+	pkt = (message_port_pkt_s *)calloc(sizeof(char) * MAX_MESSAGE_SIZE, 1);
+	if (pkt == NULL) {
 		close(fd);
 		return NULL;
 	}
@@ -491,7 +487,7 @@ retry_recv:
 		close(fd);
 		return NULL;
 	}
-	while( len < (pkt->len + HEADER_LEN) ) {
+	while (len < (pkt->len + HEADER_LEN)) {
 retry_recv1:
 		ret = recv(fd, &pkt->data[len - 8], MAX_MESSAGE_SIZE, 0);
 		if (ret < 0) {
@@ -536,8 +532,6 @@ static gboolean __socket_request_handler(GIOChannel *gio,
 			return TRUE;
 		}
 
-		//_LOGI("__socket_request_handler fd : %d", fd);
-
 		mi = (message_port_callback_info_s *)data;
 
 		if ((pkt = __message_port_recv_raw(fd)) == NULL) {
@@ -548,11 +542,10 @@ static gboolean __socket_request_handler(GIOChannel *gio,
 		kb = bundle_decode(pkt->data, pkt->len);
 		is_bidirection = pkt->is_bidirection;
 
-		if (is_bidirection) {
+		if (is_bidirection)
 			mi->callback(mi->local_id, mi->remote_app_id, mi->remote_port, mi->is_trusted, kb, NULL);
-		} else {
+		else
 			mi->callback(mi->local_id, mi->remote_app_id, NULL, mi->is_trusted, kb, NULL);
-		}
 
 		if (pkt)
 			free(pkt);
@@ -616,11 +609,11 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 	if (remote_trusted) {
 		if (g_hash_table_lookup(__trusted_app_list_hash, (gpointer)local_appid) == NULL) {
 			if (!__is_preloaded(local_appid, remote_appid)) {
-				// Check the certificate
+				/* Check the certificate */
 				int ret = __check_certificate(local_appid, remote_appid);
-				if (ret == MESSAGEPORT_ERROR_NONE) {
+				if (ret == MESSAGEPORT_ERROR_NONE)
 					g_hash_table_insert(__trusted_app_list_hash, local_appid, "TRUE");
-				} else {
+				else {
 					_LOGE("The application (%s) is not signed with the same certificate",
 							local_appid);
 					goto out;
@@ -630,9 +623,9 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 	}
 
 	callback_info = (message_port_callback_info_s *)calloc(1, sizeof(message_port_callback_info_s));
-	if (callback_info == NULL) {
+	if (callback_info == NULL)
 		goto out;
-	}
+
 	callback_info->local_id = mi->local_id;
 	callback_info->remote_app_id = strdup(local_appid);
 	callback_info->remote_port = strdup(local_port);
@@ -679,11 +672,11 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 	}
 
 	LOGI("call calback %s", local_appid);
-	if (bi_dir) {
+	if (bi_dir)
 		mi->callback(mi->local_id, local_appid, local_port, local_trusted, data, NULL);
-	} else {
+	else
 		mi->callback(mi->local_id, local_appid, NULL, false, data, NULL);
-	}
+
 
 out:
 
@@ -707,19 +700,19 @@ static int __check_remote_port(const char *remote_app_id, const char *remote_por
 	_LOGI("remote_app_id, app_id :[%s : %s] ", remote_app_id, __app_id);
 
 	ret_val = __get_remote_port_info(remote_app_id, remote_port, is_trusted, &remote_app_info, &port_info);
-	if (ret_val != MESSAGEPORT_ERROR_NONE) {
+	if (ret_val != MESSAGEPORT_ERROR_NONE)
 		return ret_val;
-	}
 
-	// self check
+
+	/* self check */
 	if (strcmp(remote_app_id, __app_id) == 0) {
 
 		_LOGI("__is_local_port_registed ");
-		if (!__is_local_port_registed(remote_port, is_trusted, &local_reg_id, &mi)) {
+		if (!__is_local_port_registed(remote_port, is_trusted, &local_reg_id, &mi))
 			*exist = false;
-		} else {
+		else
 			*exist = true;
-		}
+
 		_LOGI("__is_local_port_registed : %d ", *exist);
 		return MESSAGEPORT_ERROR_NONE;
 	}
@@ -753,8 +746,7 @@ static int __check_remote_port(const char *remote_app_id, const char *remote_por
 			LOGE("Name not exist %s", bus_name);
 			*exist = false;
 			ret_val = MESSAGEPORT_ERROR_NONE;
-		}
-		else {
+		} else {
 
 			if (is_trusted) {
 				if (remote_app_info->certificate_info != CERTIFICATE_MATCH) {
@@ -827,9 +819,8 @@ static void __dbus_method_call_handler(GDBusConnection *conn,
 			return;
 	}
 
-	if (g_strcmp0(method_name, "send_message") == 0) {
+	if (g_strcmp0(method_name, "send_message") == 0)
 		send_message(parameters, invocation);
-	}
 
 }
 
@@ -864,7 +855,8 @@ out:
 }
 
 
-int __register_dbus_interface(const char *port_name, bool is_trusted) {
+int __register_dbus_interface(const char *port_name, bool is_trusted)
+{
 
 	GDBusNodeInfo *introspection_data = NULL;
 	int registration_id = 0;
@@ -1000,9 +992,8 @@ static void __hash_destory_remote_value(gpointer data)
 	if (mri) {
 		FREE_AND_NULL(mri->sender_id);
 		FREE_AND_NULL(mri->remote_app_id);
-		if (mri->port_list) {
+		if (mri->port_list)
 			g_list_free_full(mri->port_list, __list_free_port_list);
-		}
 	}
 }
 
@@ -1045,10 +1036,8 @@ static bool __initialize(void)
 		retvm_if(!__trusted_app_list_hash, false, "fail to create __trusted_app_list_hash");
 	}
 
-
-	if (!__dbus_init()) {
+	if (!__dbus_init())
 		return false;
-	}
 	_initialized = true;
 
 	return true;
@@ -1080,10 +1069,9 @@ static int __register_message_port(const char *local_port, bool is_trusted, mess
 
 	int local_id = 0;
 
-	// Check the message port is already registed
-	if (__is_local_port_registed(local_port, is_trusted, &local_id, NULL)) {
+	/* Check the message port is already registed */
+	if (__is_local_port_registed(local_port, is_trusted, &local_id, NULL))
 		return local_id;
-	}
 
 	local_id = __register_dbus_interface(local_port, is_trusted);
 	if (local_id < 1) {
@@ -1091,9 +1079,8 @@ static int __register_message_port(const char *local_port, bool is_trusted, mess
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
 	}
 
-	if (!__message_port_register_port(local_id, local_port, is_trusted, callback)) {
+	if (!__message_port_register_port(local_id, local_port, is_trusted, callback))
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
-	}
 
 	return local_id;
 }
@@ -1144,9 +1131,9 @@ retry_send:
 	if ((len = send(sockfd, pkt, pkt_size, 0)) != pkt_size) {
 		SECURE_LOGE("send() failed - len[%d] pkt_size[%d] (errno %d[%s])", len, pkt_size,
 				errno, strerror(errno));
-		if (errno == EPIPE) {
+		if (errno == EPIPE)
 			_LOGE("fd:%d\n", sockfd);
-		}
+
 		if (errno == EINTR) {
 			if (retry_ctr > 0) {
 				_LOGI("Retrying send on fd[%d]", sockfd);
@@ -1188,9 +1175,8 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 	GVariant *body = NULL;
 
 	ret = __get_remote_port_info(remote_appid, remote_port, trusted_message, &remote_app_info, &port_info);
-	if (ret != MESSAGEPORT_ERROR_NONE) {
+	if (ret != MESSAGEPORT_ERROR_NONE)
 		return ret;
-	}
 
 	if (port_info->exist == false) {
 		bool exist = false;
@@ -1226,7 +1212,7 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 				remote_appid, remote_port, trusted_message, len, raw);
 
 
-		if (strcmp(remote_appid, __app_id) != 0) { // self send
+		if (strcmp(remote_appid, __app_id) != 0) { /* self send */
 
 			if (socketpair(AF_UNIX, SOCK_DGRAM, 0, port_info->sock_pair) != 0) {
 				_LOGE("error create socket pair");
@@ -1286,9 +1272,8 @@ int __message_send_bidirectional_message(int id, const char *remote_app_id, cons
 {
 	message_port_local_port_info_s *local_info;
 	int ret = __get_local_port_info(id, &local_info);
-	if (ret != MESSAGEPORT_ERROR_NONE) {
+	if (ret != MESSAGEPORT_ERROR_NONE)
 		return ret;
-	}
 
 	_LOGI("bidirectional_message %s", local_info->port_name);
 	return __message_port_send_message(remote_app_id, remote_port,
@@ -1462,15 +1447,13 @@ int messageport_get_local_port_name(int id, char **name)
 	message_port_local_port_info_s *local_info;
 	int ret = __get_local_port_info(id, &local_info);
 
-	if (ret != MESSAGEPORT_ERROR_NONE) {
+	if (ret != MESSAGEPORT_ERROR_NONE)
 		return ret;
-	}
 
 	*name = strdup(local_info->port_name);
 
-	if (*name == NULL) {
+	if (*name == NULL)
 		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
-	}
 
 	return MESSAGEPORT_ERROR_NONE;
 }
@@ -1480,9 +1463,8 @@ int messageport_check_trusted_local_port(int id, bool *trusted)
 	message_port_local_port_info_s *local_info;
 	int ret = __get_local_port_info(id, &local_info);
 
-	if (ret != MESSAGEPORT_ERROR_NONE) {
+	if (ret != MESSAGEPORT_ERROR_NONE)
 		return ret;
-	}
 
 	*trusted = local_info->is_trusted;
 
