@@ -1215,23 +1215,23 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 
 		if (strcmp(remote_appid, __app_id) != 0) { /* self send */
 
-			if (socketpair(AF_UNIX, SOCK_DGRAM, 0, port_info->sock_pair) != 0) {
+			/*  if message-port fail to get socket pair, communicate using GDBus */
+			if (aul_request_message_port_socket_pair(port_info->sock_pair) != AUL_R_OK) {
 				_LOGE("error create socket pair");
-				ret = MESSAGEPORT_ERROR_IO_ERROR;
-				goto out;
-			}
+			} else {
 
-			_LOGI("sock pair : %d, %d", port_info->sock_pair[0], port_info->sock_pair[1]);
+				_LOGI("sock pair : %d, %d", port_info->sock_pair[0], port_info->sock_pair[1]);
 
-			fd_list = g_unix_fd_list_new();
-			g_unix_fd_list_append(fd_list, port_info->sock_pair[1], &err);
-			g_unix_fd_list_append(fd_list, port_info->sock_pair[0], &err);
+				fd_list = g_unix_fd_list_new();
+				g_unix_fd_list_append(fd_list, port_info->sock_pair[1], &err);
+				g_unix_fd_list_append(fd_list, port_info->sock_pair[0], &err);
 
-			if (err != NULL) {
-				_LOGE("g_unix_fd_list_append [%s]", error->message);
-				ret = MESSAGEPORT_ERROR_IO_ERROR;
-				g_error_free(err);
-				goto out;
+				if (err != NULL) {
+					_LOGE("g_unix_fd_list_append [%s]", error->message);
+					ret = MESSAGEPORT_ERROR_IO_ERROR;
+					g_error_free(err);
+					goto out;
+				}
 			}
 
 		}
