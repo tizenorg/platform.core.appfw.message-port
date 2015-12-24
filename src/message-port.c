@@ -102,6 +102,8 @@ typedef struct message_port_callback_info {
 	char *remote_app_id;
 	char *remote_port;
 	bool is_trusted;
+	GIOChannel *gio_read;
+	int g_src_id;
 } message_port_callback_info_s;
 
 typedef struct message_port_local_port_info {
@@ -126,6 +128,38 @@ typedef struct port_list_info {
 	int watcher_id;
 	bool exist;
 } port_list_info_s;
+
+void __callback_info_free(message_port_callback_info_s *callback_info)
+{
+
+	GError *error = NULL;
+	if (callback_info != NULL) {
+
+		if (callback_info->remote_app_id)
+			free(callback_info->remote_app_id);
+
+		if (callback_info->remote_port)
+			free(callback_info->remote_port);
+
+		if (callback_info->gio_read != NULL) {
+			g_io_channel_shutdown(callback_info->gio_read, FALSE, &error);
+			if (error) {
+				_LOGE("g_io_channel_shutdown error : %s", error->message);
+				g_error_free(error);
+			}
+			g_io_channel_unref(callback_info->gio_read);
+			callback_info->gio_read = NULL;
+		}
+
+		if (callback_info->g_src_id != 0) {
+			g_source_remove(callback_info->g_src_id);
+			callback_info->g_src_id = 0;
+		}
+
+		free(callback_info);
+		callback_info = NULL;
+	}
+}
 
 static char *__get_encoded_name(const char *remote_app_id, const char *port_name, bool is_trusted)
 {
@@ -515,31 +549,37 @@ static gboolean __socket_request_handler(GIOChannel *gio,
 	bool is_bidirection;
 	GError *error = NULL;
 
-	if (cond == G_IO_HUP) {
+	mi = (message_port_callback_info_s *)data;
+	if (mi == NULL) {
 
-		_LOGI("socket G_IO_HUP");
 		g_io_channel_shutdown(gio, FALSE, &error);
 		if (error) {
 			_LOGE("g_io_channel_shutdown error : %s", error->message);
 			g_error_free(error);
 		}
 		g_io_channel_unref(gio);
-		if (data)
-			g_free(data);
+		return FALSE;
+	}
+
+	if (cond == G_IO_HUP) {
+
+		_LOGI("socket G_IO_HUP");
+		__callback_info_free(mi);
+
 	} else {
 
 		if ((fd = g_io_channel_unix_get_fd(gio)) < 0) {
 			_LOGE("fail to get fd from io channel");
-			return TRUE;
+			__callback_info_free(mi);
+			return FALSE;
 		}
-
-		mi = (message_port_callback_info_s *)data;
 
 		if ((pkt = __message_port_recv_raw(fd)) == NULL) {
 			_LOGE("recv error on SOCKET");
-			close(fd);
+			__callback_info_free(mi);
 			return FALSE;
 		}
+
 		kb = bundle_decode(pkt->data, pkt->len);
 		is_bidirection = pkt->is_bidirection;
 
@@ -633,7 +673,6 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 	callback_info->is_trusted = local_trusted;
 	callback_info->callback = mi->callback;
 
-
 	GError *error = NULL;
 	GDBusMessage *msg = g_dbus_method_invocation_get_message(invocation);
 
@@ -648,17 +687,18 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 
 	if (fd > 0) {
 
-		GIOChannel *gio_read = NULL;
-		gio_read = g_io_channel_unix_new(fd);
-		if (!gio_read) {
+		callback_info->gio_read = g_io_channel_unix_new(fd);
+		if (!callback_info->gio_read) {
 			_LOGE("Error is %s\n", strerror(errno));
+			__callback_info_free(callback_info);
 			return -1;
 		}
 
-		int g_src_id = g_io_add_watch(gio_read, G_IO_IN | G_IO_HUP,
+		callback_info->g_src_id = g_io_add_watch(callback_info->gio_read, G_IO_IN | G_IO_HUP,
 				__socket_request_handler, (gpointer)callback_info);
-		if (g_src_id == 0) {
+		if (callback_info->g_src_id == 0) {
 			_LOGE("fail to add watch on socket");
+			__callback_info_free(callback_info);
 			return -1;
 		}
 
@@ -677,7 +717,6 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 		mi->callback(mi->local_id, local_appid, local_port, local_trusted, data, NULL);
 	else
 		mi->callback(mi->local_id, local_appid, NULL, false, data, NULL);
-
 
 out:
 
