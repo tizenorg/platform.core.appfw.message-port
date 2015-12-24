@@ -652,6 +652,7 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 		gio_read = g_io_channel_unix_new(fd);
 		if (!gio_read) {
 			_LOGE("Error is %s\n", strerror(errno));
+			free(callback_info);
 			return -1;
 		}
 
@@ -659,6 +660,7 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 				__socket_request_handler, (gpointer)callback_info);
 		if (g_src_id == 0) {
 			_LOGE("fail to add watch on socket");
+			free(callback_info);
 			return -1;
 		}
 
