@@ -537,7 +537,6 @@ static gboolean __socket_request_handler(GIOChannel *gio,
 
 		if ((pkt = __message_port_recv_raw(fd)) == NULL) {
 			_LOGE("recv error on SOCKET");
-			close(fd);
 			return FALSE;
 		}
 		kb = bundle_decode(pkt->data, pkt->len);
@@ -652,6 +651,7 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 		gio_read = g_io_channel_unix_new(fd);
 		if (!gio_read) {
 			_LOGE("Error is %s\n", strerror(errno));
+			free(callback_info);
 			return -1;
 		}
 
@@ -659,6 +659,7 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 				__socket_request_handler, (gpointer)callback_info);
 		if (g_src_id == 0) {
 			_LOGE("fail to add watch on socket");
+			free(callback_info);
 			return -1;
 		}
 
