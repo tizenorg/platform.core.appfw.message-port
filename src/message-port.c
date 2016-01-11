@@ -91,9 +91,11 @@ enum __certificate_info_type {
 };
 
 typedef struct message_port_pkt {
-	int len;
+	int port_name_len;
+	char *port_name;
 	bool is_bidirection;
-	unsigned char data[1];
+	int data_len;
+	unsigned char *data;
 } message_port_pkt_s;
 
 typedef struct message_port_callback_info {
@@ -493,45 +495,134 @@ out:
 	return pid;
 }
 
+int __write_socket(int fd,
+		void *buffer,
+		unsigned int nbytes,
+		unsigned int *bytes_write)
+{
+	unsigned int left = nbytes;
+	ssize_t nb;
+	int retry_cnt = 0;
+
+	*bytes_write = 0;
+	while (left && (retry_cnt < MAX_RETRY_CNT)) {
+		nb = write(fd, buffer, left);
+		if (nb == -1) {
+			if (errno == EINTR) {
+				LOGE("__write_socket: EINTR error continue ...");
+				retry_cnt++;
+				continue;
+			}
+			LOGE("__write_socket: ...error fd %d: errno %d\n", fd, errno);
+			return MESSAGEPORT_ERROR_IO_ERROR;
+		}
+
+		left -= nb;
+		buffer += nb;
+		*bytes_write += nb;
+		retry_cnt = 0;
+	}
+	return MESSAGEPORT_ERROR_NONE;
+}
+
+int __write_string_to_socket(int fd, void *buffer, int string_len)
+{
+	unsigned int nb;
+	if (__write_socket(fd, &string_len, sizeof(string_len), &nb) != MESSAGEPORT_ERROR_NONE) {
+		_LOGE("write string_len fail");
+		return MESSAGEPORT_ERROR_IO_ERROR;
+	}
+
+	if (string_len > 0) {
+		if (__write_socket(fd, buffer, string_len, &nb) != MESSAGEPORT_ERROR_NONE) {
+			_LOGE("wirte buffer fail");
+			return MESSAGEPORT_ERROR_IO_ERROR;
+		}
+	}
+	return MESSAGEPORT_ERROR_NONE;
+}
+
+int __read_socket(int fd,
+		char *buffer,
+		unsigned int nbytes,
+		unsigned int *bytes_read)
+{
+	unsigned int left = nbytes;
+	ssize_t nb;
+	int retry_cnt = 0;
+
+	*bytes_read = 0;
+	while (left && (retry_cnt < MAX_RETRY_CNT)) {
+		nb = read(fd, buffer, left);
+		if (nb == 0) {
+			LOGE("__read_socket: ...read EOF, socket closed %d: nb %d\n", fd, nb);
+			return MESSAGEPORT_ERROR_IO_ERROR;
+		} else if (nb == -1) {
+			if (errno == EINTR) {
+				LOGE("__read_socket: EINTR error continue ...");
+				retry_cnt++;
+				continue;
+			}
+			LOGE("__read_socket: ...error fd %d: errno %d\n", fd, errno);
+			return MESSAGEPORT_ERROR_IO_ERROR;
+		}
+
+		left -= nb;
+		buffer += nb;
+		*bytes_read += nb;
+		retry_cnt = 0;
+	}
+	return MESSAGEPORT_ERROR_NONE;
+}
+
+int __read_string_from_socket(int fd, char **buffer, int *string_len)
+{
+	unsigned int nb;
+	if (__read_socket(fd, (char *)string_len, sizeof(*string_len), &nb) != MESSAGEPORT_ERROR_NONE) {
+		LOGE("read socket fail");
+		return MESSAGEPORT_ERROR_IO_ERROR;
+	}
+	if (*string_len > 0) {
+		*buffer = (char *)calloc(*string_len, sizeof(char));
+		if (*buffer == NULL) {
+			LOGE("Out of memory.");
+			return MESSAGEPORT_ERROR_IO_ERROR;
+		}
+		if (__read_socket(fd, *buffer, *string_len, &nb) != MESSAGEPORT_ERROR_NONE) {
+			LOGE("read socket fail");
+			return MESSAGEPORT_ERROR_IO_ERROR;
+		}
+	}
+	return MESSAGEPORT_ERROR_NONE;
+}
+
 message_port_pkt_s *__message_port_recv_raw(int fd)
 {
-	int len;
-	int ret;
 	message_port_pkt_s *pkt = NULL;
+	unsigned int nb;
 
-	pkt = (message_port_pkt_s *)calloc(sizeof(char) * MAX_MESSAGE_SIZE, 1);
+	pkt = (message_port_pkt_s *)calloc(sizeof(message_port_pkt_s), 1);
 	if (pkt == NULL) {
 		close(fd);
 		return NULL;
 	}
-
-retry_recv:
-	/*  receive single packet from socket */
-	len = recv(fd, pkt, MAX_MESSAGE_SIZE, 0);
-	if (len < 0) {
-		_LOGE("recv error: %d[%s]", errno, strerror(errno));
-		if (errno == EINTR)
-			goto retry_recv;
-	}
-
-	if (len < HEADER_LEN) {
-		_LOGE("recv error %d %d", len, pkt->len);
+	if (__read_string_from_socket(fd, (char **)&pkt->port_name, &pkt->port_name_len) != MESSAGEPORT_ERROR_NONE) {
+		LOGE("read socket fail: port_name");
 		free(pkt);
 		close(fd);
 		return NULL;
 	}
-	while (len < (pkt->len + HEADER_LEN)) {
-retry_recv1:
-		ret = recv(fd, &pkt->data[len - 8], MAX_MESSAGE_SIZE, 0);
-		if (ret < 0) {
-			SECURE_LOGE("recv error: %d %d %d", errno, len, pkt->len);
-			if (errno == EINTR)
-				goto retry_recv1;
-			free(pkt);
-			close(fd);
-			return NULL;
-		}
-		len += ret;
+	if (__read_socket(fd, (char *)&pkt->is_bidirection, sizeof(pkt->is_bidirection), &nb) != MESSAGEPORT_ERROR_NONE) {
+		LOGE("read socket fail: is_bidirection");
+		free(pkt);
+		close(fd);
+		return NULL;
+	}
+	if (__read_string_from_socket(fd, (char **)&pkt->data, &pkt->data_len) != MESSAGEPORT_ERROR_NONE) {
+		LOGE("read socket fail: data");
+		free(pkt);
+		close(fd);
+		return NULL;
 	}
 	return pkt;
 }
@@ -544,7 +635,6 @@ static gboolean __socket_request_handler(GIOChannel *gio,
 	message_port_callback_info_s *mi;
 	message_port_pkt_s *pkt;
 	bundle *kb = NULL;
-	bool is_bidirection;
 	GError *error = NULL;
 
 	mi = (message_port_callback_info_s *)data;
@@ -579,16 +669,18 @@ static gboolean __socket_request_handler(GIOChannel *gio,
 			return FALSE;
 		}
 
-		kb = bundle_decode(pkt->data, pkt->len);
-		is_bidirection = pkt->is_bidirection;
+		kb = bundle_decode(pkt->data, pkt->data_len);
 
-		if (is_bidirection)
-			mi->callback(mi->local_id, mi->remote_app_id, mi->remote_port, mi->is_trusted, kb, NULL);
+		if (pkt->is_bidirection)
+			mi->callback(mi->local_id, mi->remote_app_id, pkt->port_name, mi->is_trusted, kb, NULL);
 		else
 			mi->callback(mi->local_id, mi->remote_app_id, NULL, mi->is_trusted, kb, NULL);
 
-		if (pkt)
+		if (pkt) {
+			if (pkt->port_name)
+				free(pkt->port_name);
 			free(pkt);
+		}
 	}
 
 	return TRUE;
@@ -1124,70 +1216,44 @@ static int __register_message_port(const char *local_port, bool is_trusted, mess
 	return local_id;
 }
 
-int __message_port_send_async(int sockfd, bundle *kb, const char *app_id, const char *local_port,
+int __message_port_send_async(int sockfd, bundle *kb, const char *local_port,
 		bool local_trusted, bool is_bidirection)
 {
-
-	int len;
 	int ret = 0;
-	message_port_pkt_s *pkt = NULL;
-	int pkt_size;
-
-	int datalen;
+	int data_len;
+	int local_port_len = 0;
+	unsigned int nb;
 	bundle_raw *kb_data = NULL;
 
-	bundle_encode(kb, &kb_data, &datalen);
+	if (local_port != NULL)
+		local_port_len = strlen(local_port) + 1;
+
+	if (__write_string_to_socket(sockfd, (void *)local_port, local_port_len) != MESSAGEPORT_ERROR_NONE) {
+		_LOGE("write local_port fail");
+		return MESSAGEPORT_ERROR_IO_ERROR;
+	}
+	if (__write_socket(sockfd, &is_bidirection, sizeof(is_bidirection), &nb) != MESSAGEPORT_ERROR_NONE) {
+		_LOGE("write is_bidirection fail");
+		return MESSAGEPORT_ERROR_IO_ERROR;
+	}
+
+	bundle_encode(kb, &kb_data, &data_len);
 	if (kb_data == NULL) {
 		_LOGE("bundle encode fail");
 		ret = MESSAGEPORT_ERROR_IO_ERROR;
 		goto out;
 	}
-
-	if (datalen > MAX_MESSAGE_SIZE - HEADER_LEN) {
+	if (data_len > MAX_MESSAGE_SIZE) {
 		_LOGE("bigger than max size\n");
 		ret = MESSAGEPORT_ERROR_MAX_EXCEEDED;
 		goto out;
 	}
 
-	pkt_size = datalen + 9;
-	pkt = (message_port_pkt_s *) malloc(sizeof(char) * pkt_size);
-
-	if (NULL == pkt) {
-		_LOGE("Malloc Failed!");
-		ret = MESSAGEPORT_ERROR_OUT_OF_MEMORY;
-		goto out;
-	}
-	memset(pkt, 0, pkt_size);
-
-	pkt->len = datalen;
-	pkt->is_bidirection = is_bidirection;
-
-	memcpy(pkt->data, kb_data, datalen);
-
-	int retry_ctr = MAX_RETRY_CNT;
-
-retry_send:
-	if ((len = send(sockfd, pkt, pkt_size, 0)) != pkt_size) {
-		SECURE_LOGE("send() failed - len[%d] pkt_size[%d] (errno %d[%s])", len, pkt_size,
-				errno, strerror(errno));
-		if (errno == EPIPE)
-			_LOGE("fd:%d\n", sockfd);
-
-		if (errno == EINTR) {
-			if (retry_ctr > 0) {
-				_LOGI("Retrying send on fd[%d]", sockfd);
-				usleep(30 * 1000);
-
-				retry_ctr--;
-				goto retry_send;
-			}
-		}
-		ret = MESSAGEPORT_ERROR_IO_ERROR;
+	if (__write_string_to_socket(sockfd, (void *)kb_data, data_len) != MESSAGEPORT_ERROR_NONE) {
+		_LOGE("write kb_data fail");
 		goto out;
 	}
 out:
-	if (pkt)
-		free(pkt);
 	if (kb_data)
 		free(kb_data);
 
@@ -1231,7 +1297,7 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 
 	if (port_info->sock_pair[0] > 0) {
 		ret = __message_port_send_async(port_info->sock_pair[0], message,
-				__app_id, (local_port) ? local_port : "", local_trusted, bi_dir);
+				(local_port) ? local_port : "", local_trusted, bi_dir);
 	} else {
 
 		bus_name = port_info->encoded_bus_name;
