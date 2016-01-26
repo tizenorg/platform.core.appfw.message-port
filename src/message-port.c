@@ -94,6 +94,7 @@ typedef struct message_port_pkt {
 	int remote_port_name_len;
 	char *remote_port_name;
 	bool is_bidirection;
+	bool is_trusted;
 	int data_len;
 	unsigned char *data;
 } message_port_pkt_s;
@@ -616,6 +617,13 @@ message_port_pkt_s *__message_port_recv_raw(int fd)
 		close(fd);
 		return NULL;
 	}
+	if (__read_socket(fd, (char *)&pkt->is_trusted, sizeof(pkt->is_trusted), &nb) != MESSAGEPORT_ERROR_NONE) {
+		LOGE("read socket fail: is_trusted");
+		free(pkt->remote_port_name);
+		free(pkt);
+		close(fd);
+		return NULL;
+	}
 	if (__read_string_from_socket(fd, (char **)&pkt->data, &pkt->data_len) != MESSAGEPORT_ERROR_NONE) {
 		LOGE("read socket fail: data");
 		free(pkt->remote_port_name);
@@ -671,9 +679,9 @@ static gboolean __socket_request_handler(GIOChannel *gio,
 		kb = bundle_decode(pkt->data, pkt->data_len);
 
 		if (pkt->is_bidirection)
-			mi->callback(mi->local_id, mi->remote_app_id, pkt->remote_port_name, mi->is_trusted, kb, NULL);
+			mi->callback(mi->local_id, mi->remote_app_id, pkt->remote_port_name, pkt->is_trusted, kb, NULL);
 		else
-			mi->callback(mi->local_id, mi->remote_app_id, NULL, mi->is_trusted, kb, NULL);
+			mi->callback(mi->local_id, mi->remote_app_id, NULL, pkt->is_trusted, kb, NULL);
 
 		if (pkt) {
 			if (pkt->remote_port_name)
@@ -1234,6 +1242,10 @@ int __message_port_send_async(int sockfd, bundle *kb, const char *local_port,
 	}
 	if (__write_socket(sockfd, (char *)&is_bidirection, sizeof(is_bidirection), &nb) != MESSAGEPORT_ERROR_NONE) {
 		_LOGE("write is_bidirection fail");
+		return MESSAGEPORT_ERROR_IO_ERROR;
+	}
+	if (__write_socket(sockfd, (char *)&local_trusted, sizeof(local_trusted), &nb) != MESSAGEPORT_ERROR_NONE) {
+		_LOGE("write local_trusted fail");
 		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 
