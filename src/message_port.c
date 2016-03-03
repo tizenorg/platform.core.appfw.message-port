@@ -75,8 +75,10 @@ int message_port_register_local_port(const char *local_port, message_port_messag
 			(message_port_callback_item *)g_hash_table_lookup(__listeners, GINT_TO_POINTER(local_port_id));
 		if (item == NULL) {
 			item = (message_port_callback_item *)calloc(1, sizeof(message_port_callback_item));
-			if (item == NULL)
+			if (item == NULL) {
+				pthread_mutex_unlock(&__mutex);
 				return MESSAGE_PORT_ERROR_OUT_OF_MEMORY;
+			}
 
 			g_hash_table_insert(__listeners, GINT_TO_POINTER(local_port_id), item);
 		}
@@ -111,8 +113,10 @@ int message_port_register_trusted_local_port(const char *local_port, message_por
 			(message_port_callback_item *)g_hash_table_lookup(__trusted_listeners, GINT_TO_POINTER(trusted_local_port_id));
 		if (item == NULL) {
 			item = (message_port_callback_item *)calloc(1, sizeof(message_port_callback_item));
-			if (item == NULL)
+			if (item == NULL) {
+				pthread_mutex_unlock(&__mutex);
 				return MESSAGE_PORT_ERROR_OUT_OF_MEMORY;
+			}
 
 			g_hash_table_insert(__trusted_listeners, GINT_TO_POINTER(trusted_local_port_id), item);
 		}
