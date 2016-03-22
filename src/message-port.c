@@ -715,6 +715,7 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 	message_port_local_port_info_s *mi;
 	message_port_callback_info_s *callback_info;
 	int local_reg_id = 0;
+	char buf[1024];
 
 	g_variant_get(parameters, "(ssbbssbus)", &local_appid, &local_port, &local_trusted, &bi_dir,
 			&remote_appid, &remote_port, &remote_trusted, &len, &raw);
@@ -791,7 +792,7 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 
 		callback_info->gio_read = g_io_channel_unix_new(fd);
 		if (!callback_info->gio_read) {
-			_LOGE("Error is %s\n", strerror(errno));
+			_LOGE("Error is %s\n", strerror_r(errno, buf, sizeof(buf)));
 			__callback_info_free(callback_info);
 			return -1;
 		}
