@@ -24,8 +24,7 @@
 /**
  * @brief Enumerations of error code for Application.
  */
-typedef enum
-{
+typedef enum {
 	MESSAGEPORT_ERROR_NONE = 0,					/**< Successful */
 	MESSAGEPORT_ERROR_IO_ERROR = -EIO,			/**< Internal I/O error */
 	MESSAGEPORT_ERROR_OUT_OF_MEMORY = -ENOMEM,		/**< Out of memory */
