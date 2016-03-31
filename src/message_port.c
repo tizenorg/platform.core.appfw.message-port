@@ -159,7 +159,7 @@ int message_port_unregister_trusted_local_port(int trusted_local_port_id)
 	return convert_to_tizen_error((messageport_error_e)res);
 }
 
-int message_port_check_remote_port(const char* remote_app_id, const char *remote_port, bool* exist)
+int message_port_check_remote_port(const char *remote_app_id, const char *remote_port, bool *exist)
 {
 	if (remote_app_id == NULL || remote_port == NULL) {
 		_LOGE("[MESSAGE_PORT_ERROR_INVALID_PARAMETER] NULL value is not allowed.");
@@ -169,7 +169,7 @@ int message_port_check_remote_port(const char* remote_app_id, const char *remote
 	return convert_to_tizen_error((messageport_error_e)messageport_check_remote_port(remote_app_id, remote_port, exist));
 }
 
-int message_port_check_trusted_remote_port(const char* remote_app_id, const char *remote_port, bool *exist)
+int message_port_check_trusted_remote_port(const char *remote_app_id, const char *remote_port, bool *exist)
 {
 	if (remote_app_id == NULL || remote_port == NULL) {
 		_LOGE("[MESSAGE_PORT_ERROR_INVALID_PARAMETER] NULL value is not allowed.");
@@ -227,7 +227,7 @@ int message_port_send_message_with_local_port(const char *remote_app_id, const c
 	return convert_to_tizen_error((messageport_error_e)messageport_send_bidirectional_message(local_port_id, remote_app_id, remote_port, message));
 }
 
-int message_port_send_trusted_message_with_local_port(const char* remote_app_id, const char *remote_port, bundle* message, int local_port_id)
+int message_port_send_trusted_message_with_local_port(const char *remote_app_id, const char *remote_port, bundle *message, int local_port_id)
 {
 	if (remote_app_id == NULL || remote_port == NULL || message == NULL) {
 		_LOGE("[MESSAGE_PORT_ERROR_INVALID_PARAMETER] NULL value is not allowed.");

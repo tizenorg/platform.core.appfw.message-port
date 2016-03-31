@@ -1,19 +1,19 @@
-//
-// Open Service Platform
-// Copyright (c) 2012 Samsung Electronics Co., Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the License);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+/*
+ * Open Service Platform
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 
 #ifndef __APPFW_MESSAGE_PORT_H__
@@ -45,7 +45,7 @@ extern "C" {
  * @remarks @a data must be released with bundle_free() by you
  * @remark @a remote_app_id and @a remote_port will be set if the remote application sends a bidirectional message, otherwise they are NULL.
  */
-typedef void (*messageport_message_cb)(int id, const char* remote_app_id, const char* remote_port, bool trusted_message, bundle* data, void* user_data);
+typedef void (*messageport_message_cb)(int id, const char *remote_app_id, const char *remote_port, bool trusted_message, bundle *data, void *user_data);
 
 /**
  * @brief Unregisters the local message port. @n
@@ -73,7 +73,7 @@ EXPORT_API int messageport_unregister_local_port(int local_port_id, bool trusted
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  * @retval #MESSAGEPORT_ERROR_RESOURCE_UNAVAILABLE Resource temporarily unavailable
  */
-EXPORT_API int messageport_register_local_port(const char* local_port, messageport_message_cb callback);
+EXPORT_API int messageport_register_local_port(const char *local_port, messageport_message_cb callback);
 
 /**
  * @brief Registers the trusted local message port. @n
@@ -89,7 +89,7 @@ EXPORT_API int messageport_register_local_port(const char* local_port, messagepo
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  * @retval #MESSAGEPORT_ERROR_RESOURCE_UNAVAILABLE Resource temporarily unavailable
  */
-EXPORT_API int messageport_register_trusted_local_port(const char* local_port, messageport_message_cb callback);
+EXPORT_API int messageport_register_trusted_local_port(const char *local_port, messageport_message_cb callback);
 
 /**
  * @brief Checks if the message port of a remote application is registered.
@@ -104,7 +104,7 @@ EXPORT_API int messageport_register_trusted_local_port(const char* local_port, m
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  * @retval #MESSAGEPORT_ERROR_RESOURCE_UNAVAILABLE Resource temporarily unavailable
  */
-EXPORT_API int messageport_check_remote_port(const char* remote_app_id, const char *remote_port, bool* exist);
+EXPORT_API int messageport_check_remote_port(const char *remote_app_id, const char *remote_port, bool *exist);
 
 /**
  * @brief Checks if the trusted message port of a remote application is registered.
@@ -120,7 +120,7 @@ EXPORT_API int messageport_check_remote_port(const char* remote_app_id, const ch
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  * @retval #MESSAGEPORT_ERROR_RESOURCE_UNAVAILABLE Resource temporarily unavailable
  */
-EXPORT_API int messageport_check_trusted_remote_port(const char* remote_app_id, const char *remote_port, bool* exist);
+EXPORT_API int messageport_check_trusted_remote_port(const char *remote_app_id, const char *remote_port, bool *exist);
 
 /**
  * @brief Sends a message to the message port of a remote application.
@@ -149,7 +149,7 @@ EXPORT_API int messageport_check_trusted_remote_port(const char* remote_app_id, 
  * bundle_free(b);
  * @endcode
  */
-EXPORT_API int messageport_send_message(const char* remote_app_id, const char* remote_port, bundle* message);
+EXPORT_API int messageport_send_message(const char *remote_app_id, const char *remote_port, bundle *message);
 
 /**
  * @brief Sends a trusted message to the message port of a remote application. @n
@@ -168,7 +168,7 @@ EXPORT_API int messageport_send_message(const char* remote_app_id, const char* r
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  * @retval #MESSAGEPORT_ERROR_RESOURCE_UNAVAILABLE Resource temporarily unavailable
  */
-EXPORT_API int messageport_send_trusted_message(const char* remote_app_id, const char* remote_port, bundle* message);
+EXPORT_API int messageport_send_trusted_message(const char *remote_app_id, const char *remote_port, bundle *message);
 
 /**
  * @brief Sends a message to the message port of a remote application. This method is used for the bidirectional communication.
@@ -207,7 +207,7 @@ EXPORT_API int messageport_send_trusted_message(const char* remote_app_id, const
  *   bundle_free(b);
  * }
  */
-EXPORT_API int messageport_send_bidirectional_message(int id, const char* remote_app_id, const char* remote_port, bundle* data);
+EXPORT_API int messageport_send_bidirectional_message(int id, const char *remote_app_id, const char *remote_port, bundle *data);
 
 /**
  * @brief Sends a trusted message to the message port of a remote application. This method is used for the bidirectional communication.
@@ -227,7 +227,7 @@ EXPORT_API int messageport_send_bidirectional_message(int id, const char* remote
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  * @retval #MESSAGEPORT_ERROR_RESOURCE_UNAVAILABLE Resource temporarily unavailable
  */
-EXPORT_API int messageport_send_bidirectional_trusted_message(int id, const char* remote_app_id, const char* remote_port, bundle* data);
+EXPORT_API int messageport_send_bidirectional_trusted_message(int id, const char *remote_app_id, const char *remote_port, bundle *data);
 
 
 /**

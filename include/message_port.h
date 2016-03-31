@@ -43,8 +43,7 @@ extern "C" {
  *
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
-typedef enum
-{
+typedef enum {
 	MESSAGE_PORT_ERROR_NONE = TIZEN_ERROR_NONE,                                     /**< Successful */
 	MESSAGE_PORT_ERROR_IO_ERROR = TIZEN_ERROR_IO_ERROR,                             /**< Internal I/O error */
 	MESSAGE_PORT_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY,                   /**< Out of memory */
