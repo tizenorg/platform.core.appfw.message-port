@@ -297,6 +297,11 @@ static void on_name_vanished(GDBusConnection *connection,
 	port_list_info_s *pli = (port_list_info_s *)user_data;
 	g_bus_unwatch_name(pli->watcher_id);
 	pli->exist = false;
+	_LOGI("name vanished socket : %d", pli->sock_pair[0]);
+	if (pli->sock_pair[0] > 0) {
+		close(pli->sock_pair[0]);
+		pli->sock_pair[0] = 0;
+	}
 }
 
 static int __get_local_port_info(int id, message_port_local_port_info_s **info)
@@ -715,6 +720,11 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 	message_port_callback_info_s *callback_info;
 	int local_reg_id = 0;
 	char buf[1024];
+	GDBusMessage *msg;
+	GUnixFDList *fd_list;
+	int fd_len;
+	int *returned_fds;
+	int fd;
 
 	g_variant_get(parameters, "(ssbbssbus)", &local_appid, &local_port, &local_trusted, &bi_dir,
 			&remote_appid, &remote_port, &remote_trusted, &len, &raw);
@@ -775,18 +785,12 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 	callback_info->remote_app_id = strdup(local_appid);
 	callback_info->callback = mi->callback;
 
-	GError *error = NULL;
-	GDBusMessage *msg = g_dbus_method_invocation_get_message(invocation);
+	msg = g_dbus_method_invocation_get_message(invocation);
+	fd_list = g_dbus_message_get_unix_fd_list(msg);
+	returned_fds = g_unix_fd_list_steal_fds(fd_list, &fd_len);
+	fd = returned_fds[0];
 
-	GUnixFDList *fd_list = g_dbus_message_get_unix_fd_list(msg);
-	int fd = g_unix_fd_list_get(fd_list, 0, &error);
-	if (error) {
-		LOGE("g_unix_fd_list_get fail : %s", error->message);
-		g_error_free(error);
-	}
-
-	LOGI("g_unix_fd_list_get fd: [%d]", fd);
-
+	LOGI("g_unix_fd_list_get %d fd: [%d]", len, fd);
 	if (fd > 0) {
 
 		callback_info->gio_read = g_io_channel_unix_new(fd);
@@ -1343,19 +1347,17 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 			} else {
 
 				_LOGI("sock pair : %d, %d", port_info->sock_pair[0], port_info->sock_pair[1]);
-
 				fd_list = g_unix_fd_list_new();
 				g_unix_fd_list_append(fd_list, port_info->sock_pair[1], &err);
-				g_unix_fd_list_append(fd_list, port_info->sock_pair[0], &err);
-
 				if (err != NULL) {
 					_LOGE("g_unix_fd_list_append [%s]", error->message);
 					ret = MESSAGEPORT_ERROR_IO_ERROR;
 					g_error_free(err);
 					goto out;
 				}
+				close(port_info->sock_pair[1]);
+				port_info->sock_pair[1] = 0;
 			}
-
 		}
 
 		msg = g_dbus_message_new_method_call(bus_name, MESSAGEPORT_OBJECT_PATH, interface_name, "send_message");
