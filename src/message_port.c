@@ -34,12 +34,10 @@ static pthread_mutex_t __mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void do_callback(message_port_message_cb callback, int local_port_id, const char *remote_app_id, const char *remote_port, bool trusted_remote_port, bundle *message, void *user_data)
 {
-	if (callback) {
+	if (callback)
 		callback(local_port_id, remote_app_id, remote_port, trusted_remote_port, message, user_data);
-		bundle_free(message);
-	} else {
+	else
 		_LOGI("Ignored");
-	}
 }
 
 static void message_dispatcher(int local_port_id, const char *remote_app_id, const char *remote_port, bool trusted_remote_port, bundle *message, void *user_data)
