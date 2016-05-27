@@ -1193,7 +1193,7 @@ static bool __initialize(void)
 	}
 
 	if (__sender_appid_hash == NULL) {
-		__sender_appid_hash = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+		__sender_appid_hash = g_hash_table_new_full(g_str_hash, g_str_equal, free, NULL);
 		retvm_if(!__sender_appid_hash, false, "fail to create __sender_appid_hash");
 	}
 
