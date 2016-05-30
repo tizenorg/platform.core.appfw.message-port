@@ -921,11 +921,14 @@ static void __on_sender_name_vanished(GDBusConnection *connection,
 		const gchar     *name,
 		gpointer         user_data)
 {
-	_LOGI("sender name vanished : %s", name);
+	gboolean remove_result = FALSE;
 	int *watcher_id = (int *)user_data;
+	remove_result = g_hash_table_remove(__sender_appid_hash, (gpointer)name);
+	if (!remove_result)
+		_LOGE("Fail to remove sender appid from hash : %s", name);
+
 	g_bus_unwatch_name(*watcher_id);
 	free(watcher_id);
-	g_hash_table_remove(__sender_appid_hash, name);
 }
 
 static bool __check_sender_validation(GVariant *parameters, const char *sender, GDBusConnection *conn)
@@ -1193,7 +1196,7 @@ static bool __initialize(void)
 	}
 
 	if (__sender_appid_hash == NULL) {
-		__sender_appid_hash = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+		__sender_appid_hash = g_hash_table_new_full(g_str_hash, g_str_equal, free, NULL);
 		retvm_if(!__sender_appid_hash, false, "fail to create __sender_appid_hash");
 	}
 
