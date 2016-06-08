@@ -780,27 +780,36 @@ static bool send_message(GVariant *parameters, GDBusMethodInvocation *invocation
 
 	msg = g_dbus_method_invocation_get_message(invocation);
 	fd_list = g_dbus_message_get_unix_fd_list(msg);
-	returned_fds = g_unix_fd_list_steal_fds(fd_list, &fd_len);
-	fd = returned_fds[0];
 
-	LOGI("g_unix_fd_list_get %d fd: [%d]", fd_len, fd);
-	if (fd > 0) {
-
-		callback_info->gio_read = g_io_channel_unix_new(fd);
-		if (!callback_info->gio_read) {
-			_LOGE("Error is %s\n", strerror_r(errno, buf, sizeof(buf)));
+	/* When application send message to self fd_list is NULL */
+	if (fd_list != NULL) {
+		returned_fds = g_unix_fd_list_steal_fds(fd_list, &fd_len);
+		if (returned_fds == NULL) {
+			_LOGE("fail to get fds");
 			__callback_info_free(callback_info);
 			return -1;
 		}
+		fd = returned_fds[0];
 
-		callback_info->g_src_id = g_io_add_watch(callback_info->gio_read, G_IO_IN | G_IO_HUP,
-				__socket_request_handler, (gpointer)callback_info);
-		if (callback_info->g_src_id == 0) {
-			_LOGE("fail to add watch on socket");
-			__callback_info_free(callback_info);
-			return -1;
+		LOGI("g_unix_fd_list_get %d fd: [%d]", fd_len, fd);
+		if (fd > 0) {
+
+			callback_info->gio_read = g_io_channel_unix_new(fd);
+			if (!callback_info->gio_read) {
+				_LOGE("Error is %s\n", strerror_r(errno, buf, sizeof(buf)));
+				__callback_info_free(callback_info);
+				return -1;
+			}
+
+			callback_info->g_src_id = g_io_add_watch(callback_info->gio_read, G_IO_IN | G_IO_HUP,
+					__socket_request_handler, (gpointer)callback_info);
+			if (callback_info->g_src_id == 0) {
+				_LOGE("fail to add watch on socket");
+				__callback_info_free(callback_info);
+				return -1;
+			}
+
 		}
-
 	}
 
 	data = bundle_decode(raw, len);
