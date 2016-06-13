@@ -1320,7 +1320,6 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 
 	int ret = MESSAGEPORT_ERROR_NONE;
 	GUnixFDList *fd_list = NULL;
-	GError *error = NULL;
 
 	int len = 0;
 	bundle_raw *raw = NULL;
@@ -1383,7 +1382,7 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 				fd_list = g_unix_fd_list_new();
 				g_unix_fd_list_append(fd_list, sock_pair[SOCK_PAIR_RECEIVER], &err);
 				if (err != NULL) {
-					_LOGE("g_unix_fd_list_append [%s]", error->message);
+					_LOGE("g_unix_fd_list_append [%s]", err->message);
 					ret = MESSAGEPORT_ERROR_IO_ERROR;
 					g_error_free(err);
 					goto out;
