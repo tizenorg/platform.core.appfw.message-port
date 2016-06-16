@@ -579,7 +579,7 @@ static int __read_string_from_socket(int fd, char **buffer, int *string_len)
 		LOGE("read socket fail");
 		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
-	if (*string_len > 0) {
+	if (*string_len > 0 && *string_len < MAX_MESSAGE_SIZE) {
 		*buffer = (char *)calloc(*string_len, sizeof(char));
 		if (*buffer == NULL) {
 			LOGE("Out of memory.");
@@ -589,6 +589,9 @@ static int __read_string_from_socket(int fd, char **buffer, int *string_len)
 			LOGE("read socket fail");
 			return MESSAGEPORT_ERROR_IO_ERROR;
 		}
+	} else {
+		LOGE("Invalid string len %d", &string_len);
+		return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 	return MESSAGEPORT_ERROR_NONE;
 }
