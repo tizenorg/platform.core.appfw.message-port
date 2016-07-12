@@ -229,32 +229,6 @@ EXPORT_API int messageport_send_bidirectional_message(int id, const char *remote
  */
 EXPORT_API int messageport_send_bidirectional_trusted_message(int id, const char *remote_app_id, const char *remote_port, bundle *data);
 
-
-/**
- * @brief Gets the name of the local message port.
- *
- * @param [in] id The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
- * @param [out] name The name of the local message port
- * @return 0 on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- * @remarks @a name must be released with free() by you
- */
-EXPORT_API int messageport_get_local_port_name(int id, char **name);
-
-/**
- * @brief Checks if the local message port is trusted.
- *
- * @param [in] id The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
- * @param [out] @c true if the local message port is trusted
- * @return 0 on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- */
-EXPORT_API int messageport_check_trusted_local_port(int id, bool *trusted);
-
 /**
  * @}
  */
