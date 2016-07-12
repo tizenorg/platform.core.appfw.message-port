@@ -1145,7 +1145,7 @@ out:
 	return registration_id;
 }
 
-
+/* LCOV_EXCL_START */
 void __list_free_port_list(gpointer data)
 {
 	port_list_info_s *n = (port_list_info_s *)data;
@@ -1154,7 +1154,9 @@ void __list_free_port_list(gpointer data)
 	FREE_AND_NULL(n->port_name);
 	FREE_AND_NULL(n);
 }
+/* LCOV_EXCL_STOP */
 
+/* LCOV_EXCL_START */
 static void __hash_destory_local_value(gpointer data)
 {
 	message_port_local_port_info_s *mli = (message_port_local_port_info_s *)data;
@@ -1164,7 +1166,9 @@ static void __hash_destory_local_value(gpointer data)
 		free(mli);
 	}
 }
+/* LCOV_EXCL_STOP */
 
+/* LCOV_EXCL_START */
 static void __hash_destory_remote_value(gpointer data)
 {
 	message_port_remote_app_info_s *mri = (message_port_remote_app_info_s *)data;
@@ -1177,6 +1181,7 @@ static void __hash_destory_remote_value(gpointer data)
 		free(mri);
 	}
 }
+/* LCOV_EXCL_STOP */
 
 static bool __initialize(void)
 {
@@ -1600,34 +1605,5 @@ int messageport_send_bidirectional_trusted_message(int id, const char *remote_ap
 			return MESSAGEPORT_ERROR_IO_ERROR;
 	}
 	return __message_send_bidirectional_message(id, remote_app_id, remote_port, true, message);
-}
-
-int messageport_get_local_port_name(int id, char **name)
-{
-	message_port_local_port_info_s *local_info;
-	int ret = __get_local_port_info(id, &local_info);
-
-	if (ret != MESSAGEPORT_ERROR_NONE)
-		return ret;
-
-	*name = strdup(local_info->port_name);
-
-	if (*name == NULL)
-		return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
-
-	return MESSAGEPORT_ERROR_NONE;
-}
-
-int messageport_check_trusted_local_port(int id, bool *trusted)
-{
-	message_port_local_port_info_s *local_info;
-	int ret = __get_local_port_info(id, &local_info);
-
-	if (ret != MESSAGEPORT_ERROR_NONE)
-		return ret;
-
-	*trusted = local_info->is_trusted;
-
-	return MESSAGEPORT_ERROR_NONE;;
 }
 
