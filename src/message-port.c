@@ -1409,7 +1409,6 @@ static int __message_port_send_message(const char *remote_appid, const char *rem
 
 		g_dbus_message_set_unix_fd_list(msg, fd_list);
 		g_dbus_message_set_body(msg, body);
-		g_dbus_message_set_flags(msg, G_DBUS_MESSAGE_FLAGS_NO_REPLY_EXPECTED);
 		g_dbus_connection_send_message(__gdbus_conn, msg, G_DBUS_SEND_MESSAGE_FLAGS_NONE, NULL, &err);
 		if (err != NULL) {
 			_LOGE("No reply. error = %s", err->message);
